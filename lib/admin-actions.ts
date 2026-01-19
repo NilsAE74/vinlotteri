@@ -54,8 +54,20 @@ export async function getAdminPageData() {
   };
 }
 
+// Add this type definition
+type HallOfFameEntry = {
+  ownerName: string;
+  _count: {
+    ownerName: number;
+  };
+};
+
 // 3. Hent statistikk og historikk
-export async function getAdminStats() {
+export async function getAdminStats(): Promise<{
+  hallOfFame: HallOfFameEntry[];
+  winningNumbers: any[]; // You might want to type this too
+}> {
+  
   // Hall of Fame: Alle vinnere gruppert etter navn med antall seiere
   const hallOfFame = await prisma.ticket.groupBy({
     by: ['ownerName'],
@@ -77,7 +89,7 @@ export async function getAdminStats() {
     take: 5
   });
 
-  return { hallOfFame, winningNumbers };
+  return { hallOfFame: hallOfFame as HallOfFameEntry[], winningNumbers };
 }
 
 
