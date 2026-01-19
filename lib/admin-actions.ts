@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { PrismaClient, Ticket } from '@prisma/client';
+import { PrismaClient} from '@prisma/client';
 import { startNewWeeklyLottery } from './actions';
 import { revalidatePath } from 'next/cache';
 
@@ -35,13 +35,13 @@ export async function getAdminPageData() {
 
     // Finn navnene på de som allerede har vunnet i denne runden
     const winnersInRound = activeRound.tickets
-    .filter((t: Ticket) => t.hasWon)
-    .map((t: Ticket) => t.ownerName); // F.eks ["Ola Nordmann", "Kari"]
+    .filter((t: any) => t.hasWon)
+    .map((t: any) => t.ownerName); // F.eks ["Ola Nordmann", "Kari"]
 
     // Filtrer loddene:
   // 1. Må være tatt
   // 2. Eieren må IKKE ha vunnet før
-  const eligibleTickets = activeRound.tickets.filter((t: Ticket) => 
+  const eligibleTickets = activeRound.tickets.filter((t: any) => 
     t.isTaken && 
     t.ownerName && 
     !winnersInRound.includes(t.ownerName)
@@ -50,7 +50,7 @@ export async function getAdminPageData() {
   return { 
     activeRound, 
     eligibleTickets, // Dette er "Potten" nå
-    takenCount: activeRound.tickets.filter((t: Ticket) => t.isTaken).length // Totalt solgt (for statistikk)
+    takenCount: activeRound.tickets.filter((t: any) => t.isTaken).length // Totalt solgt (for statistikk)
   };
 }
 
@@ -105,11 +105,11 @@ export async function drawWinnerAction() {
 
      // 1. Finn navn på de som ALLEREDE har vunnet
      const previousWinners = activeRound.tickets
-     .filter((t: Ticket) => t.hasWon)
-     .map((t: Ticket) => t.ownerName);
+     .filter((t: any) => t.hasWon)
+     .map((t: any) => t.ownerName);
 
     // 2. Finn kandidater (Lodd som er tatt, men eier har ikke vunnet før)
-    const candidates = activeRound.tickets.filter((t: Ticket) => 
+    const candidates = activeRound.tickets.filter((t: any) => 
     t.isTaken && 
     t.ownerName && 
     !previousWinners.includes(t.ownerName)
