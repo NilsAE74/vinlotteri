@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import { PrismaClient } from '@prisma/client';
 import { startNewWeeklyLottery } from './actions';
+import { revalidatePath } from 'next/cache';
 
 const prisma = new PrismaClient();
 
@@ -22,14 +23,49 @@ export async function verifyAdminPassword(formData: FormData) {
     return { success: false, message: 'Feil passord' };
   }
 
-// 2. Hent statistikk og historikk
+// . HENT DATA TIL ADMIN-SIDEN
+// Denne funksjonen returnerer nå "eligibleTickets" (de som faktisk kan vinne)
+export async function getAdminPageData() {
+  const activeRound = await prisma.lotteryRound.findFirst({
+    where: { isActive: true },
+    include: { tickets: true }
+  });
+
+  if (!activeRound) return { activeRound: null, eligibleTickets: [], takenCount: 0 };
+
+  // Finn navnene på de som allerede har vunnet i denne runden
+  const winnersInRound = activeRound.tickets
+    .filter(t => t.hasWon)
+    .map(t => t.ownerName); // F.eks ["Ola Nordmann", "Kari"]
+
+  // Filtrer loddene:
+  // 1. Må være tatt
+  // 2. Eieren må IKKE ha vunnet før
+  const eligibleTickets = activeRound.tickets.filter(t => 
+    t.isTaken && 
+    t.ownerName && 
+    !winnersInRound.includes(t.ownerName)
+  );
+
+  return { 
+    activeRound, 
+    eligibleTickets, // Dette er "Potten" nå
+    takenCount: activeRound.tickets.filter(t => t.isTaken).length // Totalt solgt (for statistikk)
+  };
+}
+
+// 3. Hent statistikk og historikk
 export async function getAdminStats() {
-  // Siste 3 vinnere (på tvers av runder)
-  const recentWinners = await prisma.ticket.findMany({
-    where: { hasWon: true },
-    orderBy: { round: { createdAt: 'desc' } }, // Antar vi sorterer på rundens dato
-    take: 3,
-    include: { round: true }
+  // Hall of Fame: Alle vinnere gruppert etter navn med antall seiere
+  const hallOfFame = await prisma.ticket.groupBy({
+    by: ['ownerName'],
+    where: { 
+      hasWon: true,
+      ownerName: { not: null } // Sikrer at vi ikke teller null-navn
+    },
+    _count: { ownerName: true },
+    orderBy: { _count: { ownerName: 'desc' } }, // Sorter etter flest seiere først
+    take: 10 // Begrens til topp 10 for å unngå for lang liste
   });
 
   // Statistikk: Hvilke tall vinner oftest?
@@ -41,7 +77,56 @@ export async function getAdminStats() {
     take: 5
   });
 
-  return { recentWinners, winningNumbers };
+  return { hallOfFame, winningNumbers };
+}
+
+
+// 2. TREKKE-LOGIKK (MED "VINN KUN ÉN GANG" REGEL)
+export async function drawWinnerAction() {
+  try {
+    const activeRound = await prisma.lotteryRound.findFirst({
+      where: { isActive: true },
+      include: { tickets: true }
+    });
+
+    if (!activeRound) return { success: false, message: "Ingen aktiv runde." };
+
+    // 1. Finn navn på de som ALLEREDE har vunnet
+    const previousWinners = activeRound.tickets
+      .filter(t => t.hasWon)
+      .map(t => t.ownerName);
+
+    // 2. Finn kandidater (Lodd som er tatt, men eier har ikke vunnet før)
+    const candidates = activeRound.tickets.filter(t => 
+      t.isTaken && 
+      t.ownerName && 
+      !previousWinners.includes(t.ownerName)
+    );
+
+    if (candidates.length === 0) {
+      return { success: false, message: "Ingen flere unike vinnere igjen i potten!" };
+    }
+
+    // 3. Trekk vinner
+    const randomIndex = Math.floor(Math.random() * candidates.length);
+    const winner = candidates[randomIndex];
+
+    // 4. Oppdater databasen
+    await prisma.ticket.update({
+      where: { id: winner.id },
+      data: { hasWon: true },
+    });
+
+    // Ingen revalidatePath her, vi gjør det fra frontend etter animasjon
+    return { 
+      success: true, 
+      winner: { number: winner.number, owner: winner.ownerName } 
+    };
+
+  } catch (error) {
+    console.error("Draw error:", error);
+    return { success: false, message: "Systemfeil under trekning." };
+  }
 }
 
 // 3. Wrapper for å starte ny runde (så vi kan kalle den fra Admin UI)
@@ -54,36 +139,20 @@ export async function adminStartNewRound(formData: FormData) {
     await startNewWeeklyLottery(name);
 }
 
-export async function drawWinnerAction() {
-  // 1. Finn kandidater KUN fra aktiv runde
-  const candidates = await prisma.ticket.findMany({
-    where: { 
-      isTaken: true, 
-      hasWon: false,
-      round: { isActive: true } // <--- VIKTIG TILLEGG
-    },
-  }); 
+// Legg til denne nederst i filen:
 
-  if (candidates.length === 0) {
-    return { success: false, message: "Ingen lodd å trekke fra i den aktive runden." };
-  }
-
-  // 2. Velg en tilfeldig vinner
-  const randomIndex = Math.floor(Math.random() * candidates.length);
-  const winner = candidates[randomIndex];
-
-  // 3. Marker vinneren i databasen
-  await prisma.ticket.update({
-    where: { id: winner.id },
-    data: { hasWon: true }
+export async function toggleRoundLock() {
+  const activeRound = await prisma.lotteryRound.findFirst({
+    where: { isActive: true },
   });
 
-  // 4. Returner suksess med vinner-data
-  return { 
-    success: true, 
-    winner: { 
-      number: winner.number, 
-      owner: winner.ownerName 
-    } 
-  };
+  if (!activeRound) return;
+
+  // Bytt status (hvis låst -> åpne, hvis åpen -> lås)
+  await prisma.lotteryRound.update({
+    where: { id: activeRound.id },
+    data: { isLocked: !activeRound.isLocked }
+  });
+
+  revalidatePath('/');// Oppdaterer både Admin og brukernes forside
 }

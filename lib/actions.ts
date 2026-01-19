@@ -38,6 +38,11 @@ export async function bookTicket(formData: FormData) {
       return { success: false, message: "Ingen aktiv lotteri-runde funnet." };
     }
 
+    // --- NY SJEKK: ER RUNDEN LÅST? ---
+    if (activeRound.isLocked) {
+      return { success: false, message: "Beklager, salget er stengt for denne runden!" };
+    }
+
     // 3. Oppdater kun lodd i den aktive runden
     const result = await prisma.ticket.updateMany({
       where: {

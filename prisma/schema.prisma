@@ -12,6 +12,7 @@ model LotteryRound {
   id        Int      @id @default(autoincrement())
   name      String?   // F.eks. "Uke 4, 2026"
   isActive  Boolean  @default(true)
+  isLocked  Boolean  @default(false)
   createdAt DateTime @default(now())
   tickets   Ticket[]
 }
