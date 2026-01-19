@@ -1,0 +1,31 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model LotteryRound {
+  id        Int      @id @default(autoincrement())
+  name      String?   // F.eks. "Uke 4, 2026"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  tickets   Ticket[]
+}
+
+model Ticket {
+  id        Int      @id @default(autoincrement())
+  number    Int
+  ownerName String?
+  isTaken   Boolean  @default(false)
+  hasWon    Boolean  @default(false)
+  
+  // Relasjon til runden
+  roundId   Int
+  round     LotteryRound @relation(fields: [roundId], references: [id])
+
+  @@unique([number, roundId]) // Sørger for at nr 1-200 bare finnes én gang per runde
+}
