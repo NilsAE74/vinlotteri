@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Ticket } from '@prisma/client';
 import { startNewWeeklyLottery } from './actions';
 import { revalidatePath } from 'next/cache';
 
@@ -33,15 +33,15 @@ export async function getAdminPageData() {
 
   if (!activeRound) return { activeRound: null, eligibleTickets: [], takenCount: 0 };
 
-  // Finn navnene på de som allerede har vunnet i denne runden
-  const winnersInRound = activeRound.tickets
-    .filter(t => t.hasWon)
-    .map(t => t.ownerName); // F.eks ["Ola Nordmann", "Kari"]
+    // Finn navnene på de som allerede har vunnet i denne runden
+    const winnersInRound = activeRound.tickets
+    .filter((t: Ticket) => t.hasWon)
+    .map((t: Ticket) => t.ownerName); // F.eks ["Ola Nordmann", "Kari"]
 
-  // Filtrer loddene:
+    // Filtrer loddene:
   // 1. Må være tatt
   // 2. Eieren må IKKE ha vunnet før
-  const eligibleTickets = activeRound.tickets.filter(t => 
+  const eligibleTickets = activeRound.tickets.filter((t: Ticket) => 
     t.isTaken && 
     t.ownerName && 
     !winnersInRound.includes(t.ownerName)
@@ -50,7 +50,7 @@ export async function getAdminPageData() {
   return { 
     activeRound, 
     eligibleTickets, // Dette er "Potten" nå
-    takenCount: activeRound.tickets.filter(t => t.isTaken).length // Totalt solgt (for statistikk)
+    takenCount: activeRound.tickets.filter((t: Ticket) => t.isTaken).length // Totalt solgt (for statistikk)
   };
 }
 
@@ -103,17 +103,17 @@ export async function drawWinnerAction() {
 
     if (!activeRound) return { success: false, message: "Ingen aktiv runde." };
 
-    // 1. Finn navn på de som ALLEREDE har vunnet
-    const previousWinners = activeRound.tickets
-      .filter(t => t.hasWon)
-      .map(t => t.ownerName);
+     // 1. Finn navn på de som ALLEREDE har vunnet
+     const previousWinners = activeRound.tickets
+     .filter((t: Ticket) => t.hasWon)
+     .map((t: Ticket) => t.ownerName);
 
     // 2. Finn kandidater (Lodd som er tatt, men eier har ikke vunnet før)
-    const candidates = activeRound.tickets.filter(t => 
-      t.isTaken && 
-      t.ownerName && 
-      !previousWinners.includes(t.ownerName)
-    );
+    const candidates = activeRound.tickets.filter((t: Ticket) => 
+    t.isTaken && 
+    t.ownerName && 
+    !previousWinners.includes(t.ownerName)
+        );
 
     if (candidates.length === 0) {
       return { success: false, message: "Ingen flere unike vinnere igjen i potten!" };
