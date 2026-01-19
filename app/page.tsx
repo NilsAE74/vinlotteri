@@ -6,6 +6,14 @@ import { Play } from 'lucide-react'; // Ikon for start-knapp
 
 const prisma = new PrismaClient();
 
+type Ticket = {
+  id: number;
+  number: number;
+  ownerName: string | null;
+  isTaken: boolean;
+  hasWon: boolean;
+};
+
 export default async function Home() {
   // 1. Finn den runden som er aktiv nå
   const activeRound = await prisma.lotteryRound.findFirst({
@@ -43,7 +51,7 @@ export default async function Home() {
   }
 
   // --- SCENARIO 2: Aktiv runde (Vis rutenett og spill) ---
-  const tickets = activeRound.tickets;
+  const tickets: Ticket[] = activeRound.tickets;
   const takenTickets = tickets.filter(t => t.isTaken);
 
   return (
