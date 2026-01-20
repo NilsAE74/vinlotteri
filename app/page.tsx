@@ -74,10 +74,11 @@ export default async function Home() {
             {activeRound.name}
           </div>
           <h1 className="text-5xl md:text-7xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-[#D4AF37] to-[#8a6e1f] drop-shadow-sm">
-            Vinlotteri
+            <WineLogo className="w-16 h-16 text-[#D4AF37] mx-auto" /> Vinlotteri
           </h1>
           <p className="text-gray-400 text-lg font-light tracking-wide max-w-2xl mx-auto">
-            Velg dine lykketall.
+            Velg dine lykketall.<br />
+            5 kr pr lodd. Vipps beløp til Johan Fredrik.
             <br />
             <span className="text-[#722F37] font-semibold">{takenTickets.length}</span> lodd er kjøpt hittil.
           </p>
