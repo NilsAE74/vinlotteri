@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Vinlotteri",
   description: "Vinlotteri for RENE",
+  icons: {
+    icon: 'public/icon.svg',
+  },
 };
 
 export default function RootLayout({
