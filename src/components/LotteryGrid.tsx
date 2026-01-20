@@ -59,7 +59,12 @@ export default function LotteryGrid({ tickets }: { tickets: Ticket[] }) {
             >
               {ticket.isTaken ? (
                  <span className="text-[9px] sm:text-[10px] text-gray-400 font-mono truncate w-full px-1 text-center">
-                   {ticket.hasWon ? '🏆' : ticket.ownerName?.split(' ')[0]} {/* Viser bare fornavn for plass */}
+                   {ticket.hasWon ? '🏆' : (() => {
+                     const nameParts = ticket.ownerName?.split(' ') || [];
+                     if (nameParts.length === 0) return '';
+                     if (nameParts.length === 1) return nameParts[0];
+                     return `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`;
+                   })()}
                  </span>
               ) : (
                  <span className={clsx(
