@@ -3,6 +3,7 @@ import LotteryGrid from '@/src/components/LotteryGrid';
 //import WinnerReveal from '@/src/components/WinnerReveal';
 import { startNewWeeklyLottery } from '@/lib/actions'; // Sørg for at denne er i actions.ts
 import { Play } from 'lucide-react'; // Ikon for start-knapp
+import WineLogo from '@/src/components/WineLogo';
 
 const prisma = new PrismaClient();
 
@@ -28,7 +29,14 @@ export default async function Home() {
     return (
       <main className="min-h-screen bg-[#0d0506] flex flex-col items-center justify-center text-white p-4">
         <div className="text-center space-y-6 max-w-lg">
+          {/* Header */}
+<header className="text-center mb-12 space-y-4 flex flex-col items-center">
+  {/* LOGO HER */}
+  <div className="p-4 rounded-full bg-[#1a0b0e] border border-[#722F37] shadow-[0_0_30px_rgba(114,47,55,0.4)] mb-4">
+    <WineLogo className="w-16 h-16 text-[#D4AF37]" />
+  </div>
           <h1 className="text-5xl font-serif text-[#D4AF37]">Vinlotteriet</h1>
+          </header>
           <p className="text-gray-400">Ingen trekning er aktiv akkurat nå.</p>
           
           <form action={async () => {

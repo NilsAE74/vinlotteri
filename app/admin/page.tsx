@@ -5,6 +5,7 @@ import { getAdminStats, adminStartNewRound, getAdminPageData } from '@/lib/admin
 import { Trophy, RefreshCw, BarChart3 } from 'lucide-react';
 import { toggleRoundLock } from '@/lib/admin-actions';
 import { Lock, Unlock } from 'lucide-react';
+import WineLogo from '@/src/components/WineLogo';
 
 export default async function AdminPage() {
   const cookieStore = await cookies();
@@ -22,7 +23,8 @@ export default async function AdminPage() {
     <main className="min-h-screen bg-[#0d0506] text-white p-6 md:p-12">
       <header className="max-w-6xl mx-auto mb-12 flex justify-between items-center border-b border-[#722F37]/30 pb-6">
         <div>
-          <h1 className="text-4xl font-serif text-[#D4AF37]">Lottery Control</h1>
+          
+          <h1 className="text-4xl font-serif text-[#D4AF37]">Lotteri Admin</h1>
           <p className="text-gray-400">
             Aktiv runde: <span className="text-white">{activeRound?.name || 'Ingen aktiv runde'}</span>
           </p>
