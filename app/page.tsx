@@ -93,7 +93,8 @@ export default async function Home() {
         </div>
         
         <footer className="text-center text-gray-600 text-sm mt-12 py-8">
-          &copy; {new Date().getFullYear()} RENE
+          &copy; {new Date().getFullYear()} RENE<br />
+          <a href="../admin" className="text-gray-400 hover:text-[#D4AF37]">Admin</a>
         </footer>
       </div>
     </main>
