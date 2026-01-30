@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Vinlotteri",
   description: "Vinlotteri for RENE",
   icons: {
-    icon: 'public/icon.svg',
+    icon: '/icon.svg',
   },
 };
 
