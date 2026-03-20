@@ -77,7 +77,7 @@ export async function getAdminStats(): Promise<{
     },
     _count: { ownerName: true },
     orderBy: { _count: { ownerName: 'desc' } }, // Sorter etter flest seiere først
-    take: 5 // Begrens til topp 10 for å unngå for lang liste
+    take: 5 // Begrens til topp 5 for å unngå for lang liste
   });
 
   // Statistikk: Hvilke tall vinner oftest?
