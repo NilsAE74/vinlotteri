@@ -42,16 +42,16 @@ export default function LotteryGrid({ tickets }: { tickets: Ticket[] }) {
                 clsx(
                   // Fjernet aspect-square, bruker fast høyde (h-10 / h-12) for kompakt visning
                   "h-10 sm:h-12 relative flex flex-col items-center justify-center rounded border transition-all duration-200 overflow-hidden group",
-                  
+
                   // AVAILABLE STATE
-                  !ticket.isTaken && !isSelected && "bg-[#2a1216]/60 border-[#722F37]/30 hover:border-[#D4AF37] hover:bg-[#722F37]/20",
-                  
-                  // SELECTED STATE (Ny!)
+                  !ticket.isTaken && !isSelected && "ticket-available hover:border-[#D4AF37] hover:bg-[#722F37]/20",
+
+                  // SELECTED STATE
                   isSelected && "bg-[#D4AF37] border-[#D4AF37] text-[#1a0b0e] scale-105 z-10 shadow-[0_0_10px_rgba(212,175,55,0.5)]",
-                  
+
                   // TAKEN STATE
-                  ticket.isTaken && !ticket.hasWon && "bg-[#111] border-[#333] opacity-40 cursor-not-allowed",
-                  
+                  ticket.isTaken && !ticket.hasWon && "ticket-taken opacity-40 cursor-not-allowed",
+
                   // WINNER STATE
                   ticket.hasWon && "bg-gradient-to-br from-[#D4AF37] to-[#8a6e1f] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.4)] scale-110 z-20"
                 )

@@ -3,6 +3,21 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Wine theme – dark (default) */
+  --wine-bg: #0d0506;
+  --wine-card: #1a0b0e;
+  --wine-card-alpha: rgba(26, 11, 14, 0.8);
+  --wine-text: #ffffff;
+  --wine-text-muted: #9ca3af;
+  --wine-text-subtle: #6b7280;
+  --wine-border-faint: rgba(255, 255, 255, 0.05);
+  --ticket-available-bg: rgba(42, 18, 22, 0.6);
+  --ticket-available-border: rgba(114, 47, 55, 0.3);
+  --ticket-taken-bg: #111111;
+  --ticket-taken-border: #333333;
+  --grid-wrapper-bg: rgba(255, 255, 255, 0.05);
+  --grid-wrapper-border: rgba(255, 255, 255, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -12,8 +27,37 @@
   }
 }
 
+/* Wine theme – light */
+[data-theme="light"] {
+  --wine-bg: #fdf6f0;
+  --wine-card: #ffffff;
+  --wine-card-alpha: rgba(255, 255, 255, 0.9);
+  --wine-text: #1a0507;
+  --wine-text-muted: #6b7280;
+  --wine-text-subtle: #9ca3af;
+  --wine-border-faint: rgba(0, 0, 0, 0.07);
+  --ticket-available-bg: #fdf0f0;
+  --ticket-available-border: rgba(114, 47, 55, 0.35);
+  --ticket-taken-bg: #ede4e4;
+  --ticket-taken-border: #c9aeae;
+  --grid-wrapper-bg: rgba(255, 255, 255, 0.75);
+  --grid-wrapper-border: rgba(114, 47, 55, 0.2);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Wine theme utility classes */
+.wine-page-bg     { background-color: var(--wine-bg); color: var(--wine-text); }
+.wine-card-bg     { background-color: var(--wine-card); }
+.wine-card-alpha  { background: var(--wine-card-alpha); }
+.wine-text        { color: var(--wine-text); }
+.wine-text-muted  { color: var(--wine-text-muted); }
+.wine-text-subtle { color: var(--wine-text-subtle); }
+.wine-border-faint { border-color: var(--wine-border-faint); }
+.ticket-available  { background: var(--ticket-available-bg); border-color: var(--ticket-available-border); }
+.ticket-taken      { background: var(--ticket-taken-bg); border-color: var(--ticket-taken-border); }
+.grid-wrapper      { background: var(--grid-wrapper-bg); border-color: var(--grid-wrapper-border); }
