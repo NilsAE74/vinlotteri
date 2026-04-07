@@ -6,6 +6,7 @@ import { startNewWeeklyLottery } from '@/lib/actions'; // Sørg for at denne er 
 import { Play } from 'lucide-react'; // Ikon for start-knapp
 import WineLogo from '@/src/components/WineLogo';
 import ThemeToggle from '@/src/components/ThemeToggle';
+import CountdownTimer from '@/src/components/CountdownTimer';
 
 const prisma = new PrismaClient();
 
@@ -99,8 +100,10 @@ export default async function Home() {
           </p>
         </header>
 
-        {/* Winner Section */}
-        {/* <WinnerReveal takenTickets={takenTickets} /> */}
+        {/* Countdown */}
+        <div className="mb-10">
+          <CountdownTimer roundName={activeRound.name ?? ''} />
+        </div>
 
         {/* The Grid */}
         <div className="grid-wrapper backdrop-blur-sm rounded-2xl border p-1 shadow-2xl mt-8">
