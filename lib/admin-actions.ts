@@ -39,12 +39,11 @@ export async function getAdminPageData() {
     .map((t: any) => t.ownerName); // F.eks ["Ola Nordmann", "Kari"]
 
     // Filtrer loddene:
-  // 1. Må være tatt
-  // 2. Eieren må IKKE ha vunnet før
-  const eligibleTickets = activeRound.tickets.filter((t: any) => 
-    t.isTaken && 
-    t.ownerName && 
-    !winnersInRound.includes(t.ownerName)
+  // 1. Må ikke allerede ha vunnet
+  // 2. Eieren (hvis solgt) må IKKE ha vunnet før
+  const eligibleTickets = activeRound.tickets.filter((t: any) =>
+    !t.hasWon &&
+    (t.ownerName === null || !winnersInRound.includes(t.ownerName))
   );
 
   return { 
@@ -108,12 +107,11 @@ export async function drawWinnerAction() {
      .filter((t: any) => t.hasWon)
      .map((t: any) => t.ownerName);
 
-    // 2. Finn kandidater (Lodd som er tatt, men eier har ikke vunnet før)
-    const candidates = activeRound.tickets.filter((t: any) => 
-    t.isTaken && 
-    t.ownerName && 
-    !previousWinners.includes(t.ownerName)
-        );
+    // 2. Finn kandidater (alle lodd som ikke har vunnet, og hvis solgt: eier har ikke vunnet før)
+    const candidates = activeRound.tickets.filter((t: any) =>
+      !t.hasWon &&
+      (t.ownerName === null || !previousWinners.includes(t.ownerName))
+    );
 
     if (candidates.length === 0) {
       return { success: false, message: "Ingen flere unike vinnere igjen i potten!" };

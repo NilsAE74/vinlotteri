@@ -37,7 +37,7 @@ export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
   const handleDraw = async () => {
     // Sjekk at vi faktisk har lodd å trekke fra
     if (!takenTickets || takenTickets.length === 0) {
-      alert("Ingen lodd er solgt, kan ikke trekke vinner.");
+      alert("Ingen lodd i potten, kan ikke trekke vinner.");
       return;
     }
 
@@ -45,18 +45,18 @@ export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
     setWinnerData(null);
     setDisplayNumber(0);
 
-    // 1. Start "Lykkehjul"-animasjonen
-    // Vi velger et tilfeldig tall fra listen over solgte lodd for visuell effekt
-    intervalRef.current = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * takenTickets.length);
-      // Sikkerhetssjekk hvis arrayet er tomt midt i operasjonen
-      if (takenTickets[randomIndex]) {
-        setDisplayNumber(takenTickets[randomIndex].number);
-      }
-    }, 80);
+    const startSpinning = () => {
+      intervalRef.current = setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * takenTickets.length);
+        if (takenTickets[randomIndex]) {
+          setDisplayNumber(takenTickets[randomIndex].number);
+        }
+      }, 80);
+    };
+
+    startSpinning();
 
     try {
-      // 2. Kall serveren
       const result = await drawWinnerAction();
 
       if (!result.success) {
@@ -66,22 +66,26 @@ export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
         return;
       }
 
-      // 3. Hvis suksess, vent litt før vi viser resultatet (spenning)
+      // 3 sekunder spenning
       setTimeout(() => {
-        stopAnimation(); // Stopp rullingen
-        
-        // Vis vinneren
+        stopAnimation();
         setDisplayNumber(result.winner!.number);
-        setWinnerData(result.winner!);
         setIsDrawing(false);
 
-        // 4. Konfetti
-        fireConfetti();
-
-        // 5. Oppdater statistikken på siden
-        router.refresh();
-
-      }, 3000); // 3 sekunder spenning
+        if (result.winner!.owner) {
+          // Solgt lodd – vis vinner, konfetti og lyd
+          setWinnerData(result.winner!);
+          fireConfetti();
+          playWinSound();
+          router.refresh();
+        } else {
+          // Usolgt lodd – vis nummeret i 1 sekund, nullstill deretter
+          setTimeout(() => {
+            setDisplayNumber(null);
+            router.refresh();
+          }, 3000);
+        }
+      }, 3000);
 
     } catch (error) {
       console.error("Feil under trekning:", error);
@@ -119,6 +123,66 @@ export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
     frame();
   };
 
+  // Tilfeldig vinnermelodi via Web Audio API (ingen lydfiler nødvendig)
+  const playWinSound = () => {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioContext();
+
+    const patterns = [
+      // Oppadgående fanfare: C-E-G-C
+      (ctx: AudioContext) => {
+        [261.63, 329.63, 392.00, 523.25].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'square';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.3);
+          osc.start(ctx.currentTime + i * 0.15);
+          osc.stop(ctx.currentTime + i * 0.15 + 0.35);
+        });
+      },
+      // Triumf-akkorder
+      (ctx: AudioContext) => {
+        [[261.63, 329.63, 392.00], [349.23, 440.00, 523.25]].forEach((chord, ci) => {
+          chord.forEach(freq => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.18, ctx.currentTime + ci * 0.45);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + ci * 0.45 + 0.5);
+            osc.start(ctx.currentTime + ci * 0.45);
+            osc.stop(ctx.currentTime + ci * 0.45 + 0.55);
+          });
+        });
+      },
+      // Slotmaskin-jingle: G-G-G-E-G-C
+      (ctx: AudioContext) => {
+        const notes =     [392, 392, 392, 329.63, 392, 523.25];
+        const durations = [0.1, 0.1, 0.1,   0.15, 0.1,   0.45];
+        let t = ctx.currentTime;
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + durations[i]);
+          osc.start(t);
+          osc.stop(t + durations[i] + 0.05);
+          t += durations[i] + 0.05;
+        });
+      },
+    ];
+
+    const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+    pattern(ctx);
+  };
+
   // Opprydding når komponenten forsvinner
   useEffect(() => {
     return () => stopAnimation();
@@ -148,7 +212,7 @@ export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
                 </div>
                 {winnerData && (
                    <div className="text-xl text-[#D4AF37] font-serif mt-2 animate-in slide-in-from-bottom-2 fade-in">
-                     {winnerData.owner}
+                     {winnerData.owner ?? 'Ikke solgt – ingen vinner'}
                    </div>
                 )}
               </>

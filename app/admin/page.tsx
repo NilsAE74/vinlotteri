@@ -50,7 +50,7 @@ export default async function AdminPage() {
                 Totalt solgt: <span className="text-white font-bold">{takenCount}</span>
               </div>
               <div className="text-gray-500">
-                I potten nå: <span className="text-white font-bold">{eligibleTickets.length}</span>
+                Lodd igjen i potten: <span className="text-white font-bold">{eligibleTickets.length}</span>
               </div>
             </div>
           </div>
