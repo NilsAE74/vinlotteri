@@ -95,7 +95,6 @@ export default async function Home() {
           </h1>
           <p className="wine-text-muted text-lg font-light tracking-wide max-w-2xl mx-auto">
             Velg dine lykketall.<br />
-            5 kr pr lodd. Vipps beløp til Johan Fredrik.                        
           </p>
         </header>
 
