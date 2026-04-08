@@ -7,6 +7,7 @@ import { Play } from 'lucide-react'; // Ikon for start-knapp
 import WineLogo from '@/src/components/WineLogo';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import CountdownTimer from '@/src/components/CountdownTimer';
+import TicketProgressBar from '@/src/components/TicketProgressBar';
 
 const prisma = new PrismaClient();
 
@@ -94,11 +95,14 @@ export default async function Home() {
           </h1>
           <p className="wine-text-muted text-lg font-light tracking-wide max-w-2xl mx-auto">
             Velg dine lykketall.<br />
-            5 kr pr lodd. Vipps beløp til Johan Fredrik.
-            <br />
-            <span className="text-[#722F37] font-semibold">{takenTickets.length}</span> lodd er kjøpt hittil.
+            5 kr pr lodd. Vipps beløp til Johan Fredrik.                        
           </p>
         </header>
+
+        {/* Progress bar */}
+        <div className="mb-8">
+          <TicketProgressBar taken={takenTickets.length} total={tickets.length} />
+        </div>
 
         {/* Countdown */}
         <div className="mb-10">
