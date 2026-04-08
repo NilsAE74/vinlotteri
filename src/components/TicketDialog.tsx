@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { bookTicket } from '@/lib/actions';
 import { Loader2 } from 'lucide-react';
 
@@ -59,6 +60,17 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
               placeholder="F.eks. Ola Nordmann"
               className="w-full bg-[#2a1216] border border-[#5a252c] rounded-md p-3 text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all"
             />
+          </div>
+
+          {/* Vipps QR */}
+          <div className="flex flex-col items-center gap-2 py-2">
+            <p className="text-sm text-[#D4AF37]/80">
+              Betal <span className="font-bold text-[#D4AF37]">{ticketNumbers.length * 5} kr</span> via Vipps, så bekrefter du kjøpet under.
+            </p>
+            <div className="bg-white rounded-xl p-2 shadow-lg">
+              <Image src="/qr.png" alt="Vipps QR-kode" width={160} height={160} />
+            </div>
+            <p className="text-xs text-gray-500">Skann med kameraet eller Vipps-appen</p>
           </div>
 
           {error && (
