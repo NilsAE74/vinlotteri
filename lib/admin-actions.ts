@@ -5,7 +5,9 @@ import { PrismaClient} from '@prisma/client';
 import { startNewWeeklyLottery } from './actions';
 import { revalidatePath } from 'next/cache';
 
-const prisma = new PrismaClient();
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const prisma = globalForPrisma.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // 1. Enkel innlogging
 export async function verifyAdminPassword(formData: FormData) {

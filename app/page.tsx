@@ -9,7 +9,9 @@ import ThemeToggle from '@/src/components/ThemeToggle';
 import CountdownTimer from '@/src/components/CountdownTimer';
 import TicketProgressBar from '@/src/components/TicketProgressBar';
 
-const prisma = new PrismaClient();
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const prisma = globalForPrisma.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 type Ticket = {
   id: number;
