@@ -68,7 +68,8 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
               Betal <span className="font-bold text-[#D4AF37]">{ticketNumbers.length * 5} kr</span> via Vipps, så bekrefter du kjøpet under.
             </p>
             <div className="bg-white rounded-xl p-2 shadow-lg">
-              <Image src="/qr.png" alt="Vipps QR-kode" width={160} height={160} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/qr.png?v=2" alt="Vipps QR-kode" width={160} height={160} />
             </div>
             <p className="text-xs text-gray-500">Skann med kameraet eller Vipps-appen</p>
           </div>

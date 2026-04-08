@@ -74,6 +74,13 @@ export default async function Home() {
   const tickets: Ticket[] = activeRound.tickets;
   const takenTickets = tickets.filter(t => t.isTaken);
 
+  // Hent ukens kakebaker
+  const currentWeek = getWeekNumber(new Date());
+  const kakeBakere = await prisma.$queryRaw<{ Navn: string }[]>`
+    SELECT "Navn" FROM "Kakeliste" WHERE uke = ${currentWeek} LIMIT 1
+  `;
+  const kakebaker = kakeBakere[0]?.Navn ?? null;
+
   return (
     <main className="min-h-screen wine-page-bg overflow-x-hidden selection:bg-[#D4AF37] selection:text-black">
       {/* Background Ambience – only visible in dark mode */}
@@ -98,8 +105,16 @@ export default async function Home() {
           <p className="wine-text-muted text-lg font-light tracking-wide max-w-2xl mx-auto">
             Velg dine lykketall.<br />
           </p>
-        </header>
+        
 
+        {/* Kakebaker */}
+        {kakebaker && (
+          <div className="mb-4 text-center wine-text-muted text-sm">
+            Ukens kakebaker: <span className="text-[#D4AF37] font-semibold">{kakebaker}</span> 🎂
+          </div>
+        )}
+        </header>
+        
         {/* Progress bar */}
         <div className="mb-8">
           <TicketProgressBar taken={takenTickets.length} total={tickets.length} />
