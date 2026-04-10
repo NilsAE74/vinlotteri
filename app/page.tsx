@@ -74,8 +74,8 @@ export default async function Home() {
   const tickets: Ticket[] = activeRound.tickets;
   const takenTickets = tickets.filter(t => t.isTaken);
 
-  // Hent ukens kakebaker
-  const currentWeek = getWeekNumber(new Date());
+  // Hent ukens kakebaker (prioriter uke fra aktiv runde, fallback til dagens uke)
+  const currentWeek = getWeekFromRoundName(activeRound.name) ?? getWeekNumber(new Date());
   const kakeBakere = await prisma.$queryRaw<{ Navn: string }[]>`
     SELECT "Navn" FROM "Kakeliste" WHERE uke = ${currentWeek} LIMIT 1
   `;
@@ -146,4 +146,16 @@ function getWeekNumber(d: Date) {
   var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
   var weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
   return weekNo;
+}
+
+function getWeekFromRoundName(roundName?: string | null): number | null {
+  if (!roundName) return null;
+
+  const match = roundName.match(/uke\s+(\d{1,2})/i);
+  if (!match) return null;
+
+  const week = Number(match[1]);
+  if (Number.isNaN(week) || week < 1 || week > 53) return null;
+
+  return week;
 }
