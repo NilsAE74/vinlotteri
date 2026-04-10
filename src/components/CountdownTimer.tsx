@@ -50,7 +50,7 @@ export default function CountdownTimer({ roundName }: { roundName: string }) {
   if (isPast) {
     return (
       <p className="text-center text-[#D4AF37] text-sm uppercase tracking-widest">
-        Trekning er gjennomført
+        Tid for trekning
       </p>
     );
   }
