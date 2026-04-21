@@ -66,7 +66,7 @@ export default async function Home() {
             </button>
           </form>
           <footer className="text-center wine-text-subtle text-sm mt-12">
-            <a href="http://10.96.83.158:3000" className="wine-text-muted hover:text-[#D4AF37]">Ka?-Hoot!</a>
+            <a href="http://10.96.83.158:3000" className="wine-text-muted hover:text-[#D4AF37]">Ka?-Hoot?</a>
           </footer>
         </div>
       </main>
@@ -137,7 +137,7 @@ export default async function Home() {
           &copy; {new Date().getFullYear()} RENE<br />
           <a href="../admin" className="wine-text-muted hover:text-[#D4AF37]">Admin</a>
           <span className="mx-2 wine-text-subtle">·</span>
-          <a href="http://10.96.83.158:3000" className="wine-text-muted hover:text-[#D4AF37]">Ka?-Hoot!</a>
+          <a href="http://10.96.83.158:3000" className="wine-text-muted hover:text-[#D4AF37]">Ka?-Hoot?</a>
         </footer>
       </div>
     </main>
