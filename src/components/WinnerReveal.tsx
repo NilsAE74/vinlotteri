@@ -77,6 +77,7 @@ export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
           setWinnerData(result.winner!);
           fireConfetti();
           playWinSound();
+          speakWinner(result.winner!.number, result.winner!.owner);
           router.refresh();
         } else {
           // Usolgt lodd – vis nummeret i 1 sekund, nullstill deretter
@@ -121,6 +122,34 @@ export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
       }
     };
     frame();
+  };
+
+  const speakWinner = (number: number, owner: string | null) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const text = owner
+      ? `Nummer ${number}... ${owner}!`
+      : `Nummer ${number}`;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'nb-NO';
+    utterance.rate = 0.82;
+    utterance.pitch = 1.05;
+
+    const trySpeak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const norwegianVoice = voices.find(v => v.lang.startsWith('nb') || v.lang.startsWith('no'));
+      if (norwegianVoice) utterance.voice = norwegianVoice;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    // Voices may not be loaded yet on first call
+    if (window.speechSynthesis.getVoices().length > 0) {
+      trySpeak();
+    } else {
+      window.speechSynthesis.addEventListener('voiceschanged', trySpeak, { once: true });
+    }
   };
 
   // Tilfeldig vinnermelodi via Web Audio API (ingen lydfiler nødvendig)
