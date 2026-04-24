@@ -143,12 +143,28 @@ export async function drawWinnerAction() {
 
 // 3. Wrapper for å starte ny runde (så vi kan kalle den fra Admin UI)
 export async function adminStartNewRound(formData: FormData) {
-    // Generer et navn basert på dato, f.eks "Uke 4, 2026"
-    const date = new Date();
-    const week = Math.ceil((((date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 86400000) + 1) / 7);
-    const name = `Uke ${week}, ${date.getFullYear()}`;
+    const lastRound = await prisma.lotteryRound.findFirst({
+        orderBy: { id: 'desc' }
+    });
 
-    await startNewWeeklyLottery(name);
+    let week: number;
+    let year: number;
+
+    const match = lastRound?.name?.match(/Uke (\d+), (\d+)/);
+    if (match) {
+        week = parseInt(match[1]) + 2;
+        year = parseInt(match[2]);
+        if (week > 52) {
+            week -= 52;
+            year += 1;
+        }
+    } else {
+        const date = new Date();
+        year = date.getFullYear();
+        week = Math.ceil((((date.getTime() - new Date(year, 0, 1).getTime()) / 86400000) + 1) / 7);
+    }
+
+    await startNewWeeklyLottery(`Uke ${week}, ${year}`);
 }
 
 // Legg til denne nederst i filen:
