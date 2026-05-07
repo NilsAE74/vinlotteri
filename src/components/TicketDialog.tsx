@@ -62,16 +62,26 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
             />
           </div>
 
-          {/* Vipps QR */}
+          {/* Vipps betaling */}
           <div className="flex flex-col items-center gap-2 py-2">
             <p className="text-sm text-[#D4AF37]/80">
               Betal <span className="font-bold text-[#D4AF37]">{ticketNumbers.length * 5} kr</span> via Vipps, så bekrefter du kjøpet under.
             </p>
-            <div className="bg-white rounded-xl p-2 shadow-lg">
+            {/* QR-kode på desktop */}
+            <div className="hidden md:block bg-white rounded-xl p-2 shadow-lg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/qr.png?v=2" alt="Vipps QR-kode" width={160} height={160} />
             </div>
-            <p className="text-xs text-gray-500">Skann med kameraet eller Vipps-appen</p>
+            <p className="hidden md:block text-xs text-gray-500">Skann med kameraet eller Vipps-appen</p>
+            {/* Lenke på mobil */}
+            <a
+              href="https://qr.vipps.no/box/aae883d3-b423-4666-a1c3-4d0c6c3749f6/pay-in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="md:hidden flex items-center gap-2 px-5 py-3 bg-[#FF5B24] text-white font-bold rounded-lg hover:bg-[#e04e1e] transition-colors text-sm"
+            >
+              Betal med Vipps
+            </a>
           </div>
 
           {error && (
