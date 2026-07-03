@@ -77,12 +77,14 @@ export default async function Home() {
   const tickets: Ticket[] = activeRound.tickets;
   const takenTickets = tickets.filter(t => t.isTaken);
 
-  // Hent ukens kakebaker (prioriter uke fra aktiv runde, fallback til dagens uke)
-  const currentWeek = getWeekFromRoundName(activeRound.name) ?? getWeekNumber(new Date());
-  const kakeBakere = await prisma.$queryRaw<{ Navn: string }[]>`
-    SELECT "Navn" FROM "Kakeliste" WHERE uke = ${currentWeek} LIMIT 1
+  // Hent neste kakebaker fra Kakeliste (første uke >= i dag)
+  const todayWeek = getWeekNumber(new Date());
+  const nextKakeListe = await prisma.$queryRaw<{ Navn: string; uke: number }[]>`
+    SELECT "Navn", uke FROM "Kakeliste" WHERE uke >= ${todayWeek} ORDER BY uke ASC LIMIT 1
   `;
-  const kakebaker = kakeBakere[0]?.Navn ?? null;
+  const nextKake = nextKakeListe[0] ?? null;
+  const kakebaker = nextKake?.Navn ?? null;
+  const kakeUke = nextKake?.uke ?? null;
 
   return (
     <main className="min-h-screen wine-page-bg overflow-x-hidden selection:bg-[#D4AF37] selection:text-black">
@@ -100,7 +102,7 @@ export default async function Home() {
         {/* Header */}
         <header className="text-center mb-12 space-y-4">
           <div className="inline-block px-3 py-1 border border-[#D4AF37]/30 rounded-full text-[#D4AF37] text-xs uppercase tracking-widest mb-2">
-            {activeRound.name}
+            {kakeUke ? `Uke ${kakeUke}` : activeRound.name}
           </div>
           <h1 className="text-5xl md:text-7xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-[#D4AF37] to-[#8a6e1f] drop-shadow-sm">
             <WineLogo className="w-16 h-16 text-[#D4AF37] mx-auto" /> Vinlotteri
@@ -125,7 +127,7 @@ export default async function Home() {
 
         {/* Countdown */}
         <div className="mb-10">
-          <CountdownTimer roundName={activeRound.name ?? ''} />
+          <CountdownTimer roundName={kakeUke ? `Uke ${kakeUke}, ${new Date().getFullYear()}` : (activeRound.name ?? '')} />
         </div>
 
         {/* The Grid */}
@@ -151,16 +153,4 @@ function getWeekNumber(d: Date) {
   var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
   var weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
   return weekNo;
-}
-
-function getWeekFromRoundName(roundName?: string | null): number | null {
-  if (!roundName) return null;
-
-  const match = roundName.match(/uke\s+(\d{1,2})/i);
-  if (!match) return null;
-
-  const week = Number(match[1]);
-  if (Number.isNaN(week) || week < 1 || week > 53) return null;
-
-  return week;
 }
