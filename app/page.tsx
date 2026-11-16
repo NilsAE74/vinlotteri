@@ -29,7 +29,8 @@ export default async function Home() {
   const activeRound = await prisma.lotteryRound.findFirst({
     where: { isActive: true },
     include: {
-      tickets: { orderBy: { number: 'asc' } }
+      tickets: { orderBy: { number: 'asc' } },
+      wines: { orderBy: { position: 'asc' } }
     }
   });
 
@@ -120,6 +121,29 @@ export default async function Home() {
         )}
         </header>
         
+        {/* Ukens vin */}
+        {activeRound.wines.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-center text-[#D4AF37] text-xs uppercase tracking-widest mb-4">
+              {activeRound.wines.length === 1 ? 'Ukens vin' : `Ukens viner (${activeRound.wines.length} flasker)`}
+            </h2>
+            <div className="flex flex-wrap justify-center gap-4">
+              {activeRound.wines.map(wine => (
+                <div
+                  key={wine.id}
+                  className="w-full sm:w-72 wine-card-alpha border border-[#722F37]/50 rounded-xl p-4 flex items-center gap-4"
+                >
+                  {wine.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={wine.imageUrl} alt="" className="w-16 h-16 object-contain shrink-0" />
+                  )}
+                  <p className="wine-text text-sm whitespace-pre-line">{wine.info}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Progress bar */}
         <div className="mb-8">
           <TicketProgressBar taken={takenTickets.length} total={tickets.length} />

@@ -7,6 +7,8 @@ import { Trophy, RefreshCw, BarChart3 } from 'lucide-react';
 import { toggleRoundLock } from '@/lib/admin-actions';
 import { Lock, Unlock } from 'lucide-react';
 import WineLogo from '@/src/components/WineLogo';
+import WineListEditor from '@/src/components/WineListEditor';
+import { Wine } from 'lucide-react';
 
 export default async function AdminPage() {
   const cookieStore = await cookies();
@@ -58,6 +60,16 @@ export default async function AdminPage() {
               </div>
             </div>
           </div>
+
+          {/* Vininfo */}
+          {activeRound && (
+            <div className="wine-card-bg border border-[#722F37]/50 rounded-xl p-6">
+              <h3 className="text-[#D4AF37] font-serif text-xl mb-4 flex items-center gap-2">
+                <Wine className="w-5 h-5" /> Ukens viner
+              </h3>
+              <WineListEditor wines={activeRound.wines} />
+            </div>
+          )}
 
           {/* Handlinger */}
           <div className="wine-card-bg border border-[#333] rounded-xl p-6">
