@@ -30,7 +30,7 @@ export async function verifyAdminPassword(formData: FormData) {
 export async function getAdminPageData() {
   const activeRound = await prisma.lotteryRound.findFirst({
     where: { isActive: true },
-    include: { tickets: true }
+    include: { tickets: true, wines: { orderBy: { position: 'asc' } } }
   });
 
   if (!activeRound) return { activeRound: null, eligibleTickets: [], takenCount: 0 };
@@ -130,9 +130,9 @@ export async function drawWinnerAction() {
     });
 
     // Ingen revalidatePath her, vi gjør det fra frontend etter animasjon
-    return { 
-      success: true, 
-      winner: { number: winner.number, owner: winner.ownerName } 
+    return {
+      success: true,
+      winner: { number: winner.number, owner: winner.ownerName }
     };
 
   } catch (error) {
@@ -183,4 +183,114 @@ export async function toggleRoundLock() {
   });
 
   revalidatePath('/');// Oppdaterer både Admin og brukernes forside
+}
+
+// 4. VININFO
+
+async function isAdmin() {
+  return (await cookies()).get('admin_auth')?.value === 'true';
+}
+
+export type WineSearchResult = {
+  code: string;
+  name: string;
+  price: string | null;
+  country: string | null;
+  district: string | null;
+  volume: string | null;
+  alcohol: string | null;
+  imageUrl: string | null;
+  url: string | null;
+};
+
+// Utsnitt av feltene vi bruker fra Vinmonopolets søkesvar
+type VmpProduct = {
+  code: string;
+  name: string;
+  price?: { formattedValue?: string };
+  main_country?: { name?: string };
+  district?: { name?: string };
+  volume?: { formattedValue?: string };
+  alcohol?: { formattedValue?: string };
+  images?: { format: string; url: string }[];
+  url?: string;
+};
+
+// Søker i Vinmonopolets nettbutikk (uoffisielt API, samme som vinmonopolet.no bruker)
+export async function searchVinmonopolet(query: string): Promise<WineSearchResult[]> {
+  if (!(await isAdmin())) return [];
+  const q = query.trim();
+  if (q.length < 2) return [];
+
+  try {
+    const res = await fetch(
+      `https://www.vinmonopolet.no/vmpws/v2/vmp/products/search?q=${encodeURIComponent(q)}&pageSize=10&fields=FULL`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store' }
+    );
+    if (!res.ok) return [];
+    const data: { products?: VmpProduct[] } = await res.json();
+
+    return (data.products ?? []).map(p => ({
+      code: p.code,
+      name: p.name,
+      price: p.price?.formattedValue ?? null,
+      country: p.main_country?.name ?? null,
+      district: p.district?.name ?? null,
+      volume: p.volume?.formattedValue ?? null,
+      alcohol: p.alcohol?.formattedValue ?? null,
+      imageUrl: p.images?.find(i => i.format === 'product')?.url ?? null,
+      url: p.url ? `https://www.vinmonopolet.no${p.url}` : null,
+    }));
+  } catch (error) {
+    console.error('Vinmonopolet search error:', error);
+    return [];
+  }
+}
+
+function revalidateWines() {
+  revalidatePath('/');
+  revalidatePath('/admin');
+}
+
+// Legger til en flaske nederst i listen for den aktive runden
+export async function addWine(info: string, imageUrl: string | null) {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+  const text = info.trim();
+  if (!text) return { success: false, message: 'Mangler tekst' };
+
+  const activeRound = await prisma.lotteryRound.findFirst({
+    where: { isActive: true },
+    include: { wines: { orderBy: { position: 'desc' }, take: 1 } },
+  });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+
+  await prisma.wine.create({
+    data: {
+      roundId: activeRound.id,
+      info: text,
+      imageUrl: imageUrl || null,
+      position: (activeRound.wines[0]?.position ?? -1) + 1,
+    },
+  });
+
+  revalidateWines();
+  return { success: true };
+}
+
+export async function updateWine(id: number, info: string) {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+  const text = info.trim();
+  if (!text) return { success: false, message: 'Mangler tekst' };
+
+  await prisma.wine.update({ where: { id }, data: { info: text } });
+  revalidateWines();
+  return { success: true };
+}
+
+export async function deleteWine(id: number) {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+
+  await prisma.wine.delete({ where: { id } });
+  revalidateWines();
+  return { success: true };
 }

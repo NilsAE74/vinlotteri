@@ -15,6 +15,18 @@ model LotteryRound {
   isLocked  Boolean  @default(false)
   createdAt DateTime @default(now())
   tickets   Ticket[]
+  wines     Wine[]
+}
+
+// Flaskene som loddes ut i en runde (kun informasjon om ukens premie)
+model Wine {
+  id       Int     @id @default(autoincrement())
+  info     String  // F.eks. "Barolo 2019 – Italia, Piemonte · 75 cl · 14% · Kr 699,90"
+  imageUrl String?
+  position Int     @default(0)
+
+  roundId  Int
+  round    LotteryRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
 }
 
 model Ticket {
@@ -23,7 +35,7 @@ model Ticket {
   ownerName String?
   isTaken   Boolean  @default(false)
   hasWon    Boolean  @default(false)
-  
+
   // Relasjon til runden
   roundId   Int
   round     LotteryRound @relation(fields: [roundId], references: [id])
