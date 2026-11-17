@@ -7,6 +7,7 @@ import { Trophy, RefreshCw, BarChart3, Lock, Unlock, Wine, Ticket, MonitorPlay }
 import WineListEditor from '@/src/components/WineListEditor';
 import TicketBookingsEditor from '@/src/components/TicketBookingsEditor';
 import ResetDrawButton from '@/src/components/ResetDrawButton';
+import PendingSubmitButton from '@/src/components/PendingSubmitButton';
 
 export default async function AdminPage() {
   if (!(await isAdminAuthenticated())) return <AdminLogin />;
@@ -121,12 +122,13 @@ export default async function AdminPage() {
               </div>
             )}
             <form action={adminStartNewRound}>
-              <button
-                type="submit"
+              <input type="hidden" name="activeRoundId" value={activeRound?.id ?? ''} />
+              <PendingSubmitButton
+                pendingText="Starter nytt lotteri…"
                 className="w-full py-4 border-2 border-dashed border-[#722F37] text-[#722F37] hover:bg-[#722F37] hover:text-[#D4AF37] hover:border-transparent rounded-lg transition-all uppercase tracking-widest text-sm font-bold"
               >
                 Avslutt uke & Start Nytt Lotteri
-              </button>
+              </PendingSubmitButton>
               <p className="text-xs wine-text-subtle mt-2 text-center">
                 Advarsel: Dette arkiverer nåværende runde og sletter alle lodd fra "Active"-visningen.
               </p>

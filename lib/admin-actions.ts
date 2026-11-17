@@ -139,8 +139,12 @@ export async function drawWinnerAction() {
 }
 
 // 3. Wrapper for å starte ny runde (så vi kan kalle den fra Admin UI)
-export async function adminStartNewRound() {
+export async function adminStartNewRound(formData: FormData) {
     if (!(await isAdmin())) return;
+
+    // Id-en til runden som var aktiv da knappen ble vist (sperre mot dobbeltklikk)
+    const raw = formData.get('activeRoundId');
+    const expectedActiveRoundId = raw ? Number(raw) : null;
 
     const lastRound = await prisma.lotteryRound.findFirst({
         orderBy: { id: 'desc' }
@@ -163,7 +167,7 @@ export async function adminStartNewRound() {
         week = Math.ceil((((date.getTime() - new Date(year, 0, 1).getTime()) / 86400000) + 1) / 7);
     }
 
-    await createWeeklyRound(`Uke ${week}, ${year}`);
+    await createWeeklyRound(`Uke ${week}, ${year}`, expectedActiveRoundId);
     revalidatePath('/');
     revalidatePath('/admin', 'layout');
 }

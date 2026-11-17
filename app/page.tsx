@@ -3,7 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import { cookies } from 'next/headers';
 import LotteryGrid from '@/src/components/LotteryGrid';
 //import WinnerReveal from '@/src/components/WinnerReveal';
-import { createWeeklyRound, hasActiveRound } from '@/lib/lottery';
+import { createWeeklyRound } from '@/lib/lottery';
+import PendingSubmitButton from '@/src/components/PendingSubmitButton';
 import { revalidatePath } from 'next/cache';
 import { Play } from 'lucide-react'; // Ikon for start-knapp
 import WineLogo from '@/src/components/WineLogo';
@@ -56,20 +57,20 @@ export default async function Home() {
 
           <form action={async () => {
             'use server';
-            // Starter en ny runde med dagens ukenummer – kun når ingen runde er aktiv,
-            // slik at denne offentlige knappen aldri kan avslutte en pågående runde.
-            if (await hasActiveRound()) return;
+            // Starter en ny runde med dagens ukenummer – kun når ingen runde er aktiv
+            // (expectedActiveRoundId = null), slik at denne offentlige knappen aldri kan
+            // avslutte en pågående runde, og et dobbeltklikk ikke lager to runder.
             const week = getWeekNumber(new Date());
-            await createWeeklyRound(`Uke ${week}, ${new Date().getFullYear()}`);
+            await createWeeklyRound(`Uke ${week}, ${new Date().getFullYear()}`, null);
             revalidatePath('/');
           }}>
-            <button
-              type="submit"
+            <PendingSubmitButton
+              pendingText="Starter…"
               className="group flex items-center gap-2 mx-auto px-8 py-4 bg-[#722F37] hover:bg-[#8a3842] text-[#D4AF37] font-serif text-xl border border-[#D4AF37]/30 rounded shadow-2xl transition-all"
             >
               <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
               Start Nytt Lotteri
-            </button>
+            </PendingSubmitButton>
           </form>
           <footer className="text-center wine-text-subtle text-sm mt-12">
             <Link href="/vinnerhistorikk" className="wine-text-muted hover:text-[#D4AF37]">Vinnerhistorikk</Link>
