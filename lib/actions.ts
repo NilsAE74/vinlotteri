@@ -11,7 +11,7 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 // --- VALIDERING ---
 const bookTicketSchema = z.object({
   numbers: z.string().transform((str) => JSON.parse(str) as number[]), 
-  name: z.string().min(2, "Navn må ha minst 2 bokstaver").max(50),
+  name: z.string().trim().min(2, "Navn må ha minst 2 bokstaver").max(50),
 });
 
 // --- KJØP LODD ---

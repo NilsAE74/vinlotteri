@@ -1,0 +1,88 @@
+import { prisma } from './prisma';
+
+// Data til den offentlige vinnerhistorikk-siden.
+// NB: Ikke en 'use server'-fil – kalles kun fra server-komponenter.
+
+export type LeaderboardEntry = { rank: number; name: string; wins: number; numbers: number[] };
+export type NumberStat = { number: number; withWinner: number; withoutWinner: number; total: number };
+export type RoundLog = { id: number; name: string; date: Date; winners: { number: number; name: string }[] };
+
+export async function getWinnerHistory() {
+  const drawn = await prisma.ticket.findMany({
+      where: { hasWon: true },
+      select: {
+        number: true,
+        ownerName: true,
+        round: { select: { id: true, name: true, createdAt: true } },
+      },
+    });
+
+  // Trim navn, slik at f.eks. "Kirsti" og "Kirsti " regnes som samme person
+  const withWinner = drawn
+    .map(t => ({ ...t, ownerName: t.ownerName?.trim() || null }))
+    .filter(t => t.ownerName);
+  const unsoldDraws = drawn.length - withWinner.length;
+
+  // Toppliste (delt plass ved likt antall: 1, 1, 3, …)
+  const byName = new Map<string, number[]>();
+  for (const t of withWinner) {
+    byName.set(t.ownerName!, [...(byName.get(t.ownerName!) ?? []), t.number]);
+  }
+  const sorted = [...byName.entries()]
+    .map(([name, numbers]) => ({ name, wins: numbers.length, numbers: numbers.sort((a, b) => a - b) }))
+    .sort((a, b) => b.wins - a.wins || a.name.localeCompare(b.name, 'nb'));
+  const leaderboard: LeaderboardEntry[] = sorted.map((e, i) => ({
+    ...e,
+    rank: i > 0 && sorted[i - 1].wins === e.wins ? -1 : i + 1,
+  }));
+  for (let i = 1; i < leaderboard.length; i++) {
+    if (leaderboard[i].rank === -1) leaderboard[i].rank = leaderboard[i - 1].rank;
+  }
+
+  // Mest trukne tall (med og uten gevinst)
+  const byNumber = new Map<number, NumberStat>();
+  for (const t of drawn) {
+    const s = byNumber.get(t.number) ?? { number: t.number, withWinner: 0, withoutWinner: 0, total: 0 };
+    if (t.ownerName?.trim()) s.withWinner++;
+    else s.withoutWinner++;
+    s.total++;
+    byNumber.set(t.number, s);
+  }
+  const numberStats = [...byNumber.values()].sort(
+    (a, b) => b.total - a.total || b.withWinner - a.withWinner || a.number - b.number
+  );
+  const repeatedNumbers = numberStats.filter(s => s.total >= 2).length;
+
+  // Trekningslogg per runde, nyeste først
+  const byRound = new Map<number, RoundLog>();
+  for (const t of withWinner) {
+    const r = byRound.get(t.round.id) ?? {
+      id: t.round.id,
+      name: t.round.name ?? `Runde ${t.round.id}`,
+      date: t.round.createdAt,
+      winners: [],
+    };
+    r.winners.push({ number: t.number, name: t.ownerName! });
+    byRound.set(t.round.id, r);
+  }
+  const rounds = [...byRound.values()]
+    .sort((a, b) => b.date.getTime() - a.date.getTime() || b.id - a.id)
+    .map(r => ({ ...r, winners: r.winners.sort((a, b) => a.number - b.number) }));
+
+  return {
+    stats: {
+      draws: withWinner.length,
+      winnerCount: byName.size,
+      topWins: sorted[0]?.wins ?? 0,
+      topNames: sorted.filter(e => e.wins === sorted[0]?.wins).map(e => e.name),
+      // Runder med minst én vinner = gjennomførte lotterier. Tomme test-/duplikatrunder
+      // og runden som pågår (før trekning) telles ikke.
+      roundsWithWinner: rounds.length,
+      unsoldDraws,
+    },
+    leaderboard,
+    numberStats,
+    repeatedNumbers,
+    rounds,
+  };
+}

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { PrismaClient } from '@prisma/client';
 import { cookies } from 'next/headers';
 import LotteryGrid from '@/src/components/LotteryGrid';
@@ -71,7 +72,7 @@ export default async function Home() {
             </button>
           </form>
           <footer className="text-center wine-text-subtle text-sm mt-12">
-            <a href="https://claude.ai/artifact/S7CfhrSawmSMvjYkZ8j4bH" target="_blank" rel="noopener noreferrer" className="wine-text-muted hover:text-[#D4AF37]">Vinnerhistorikk</a>
+            <Link href="/vinnerhistorikk" className="wine-text-muted hover:text-[#D4AF37]">Vinnerhistorikk</Link>
           </footer>
         </div>
       </main>
@@ -167,7 +168,7 @@ export default async function Home() {
           &copy; {new Date().getFullYear()} RENE<br />
           <a href="../admin" className="wine-text-muted hover:text-[#D4AF37]">Admin</a>
           <span className="mx-2 wine-text-subtle">·</span>
-          <a href="https://claude.ai/artifact/S7CfhrSawmSMvjYkZ8j4bH" target="_blank" rel="noopener noreferrer" className="wine-text-muted hover:text-[#D4AF37]">Vinnerhistorikk</a>
+          <Link href="/vinnerhistorikk" className="wine-text-muted hover:text-[#D4AF37]">Vinnerhistorikk</Link>
         </footer>
       </div>
     </main>

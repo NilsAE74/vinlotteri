@@ -1,12 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma';
 
 // Interne hjelpefunksjoner for runder.
 // NB: Denne filen er IKKE en 'use server'-fil, så funksjonene her kan ikke
 // kalles direkte fra nettleseren. Kallere må selv sjekke tilgang.
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // Avslutter aktive runder og oppretter en ny med 200 ferske lodd
 export async function createWeeklyRound(roundName: string) {
