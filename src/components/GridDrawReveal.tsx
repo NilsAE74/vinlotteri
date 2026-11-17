@@ -19,7 +19,6 @@ type Phase = 'idle' | 'waiting' | 'eliminating' | 'final' | 'revealed';
 // Tidsoppsett (ms)
 const FINAL_COUNT = 3; // De siste loddene som slukkes ett og ett, sakte
 const FINAL_STEP = 1400; // Pause mellom hvert av de siste loddene
-const CARD_DELAY = 1200; // Fra vinnerloddet lyser til vinnerkortet vises
 
 function shuffle<T>(list: T[]) {
   const a = [...list];
@@ -98,15 +97,17 @@ export default function GridDrawReveal({
 
     // Sluttfasen: de siste loddene slukkes ett og ett mens resten pulserer
     later(mainMs, () => setPhase('final'));
-    final.forEach((n, i) => later(mainMs + FINAL_STEP * (i + 1), () => eliminate(n)));
+    // Alle unntatt det aller siste loddet slukkes her …
+    const lastLoser = final.at(-1);
+    final.slice(0, -1).forEach((n, i) => later(mainMs + FINAL_STEP * (i + 1), () => eliminate(n)));
 
-    // Avsløring
-    const revealAt = mainMs + FINAL_STEP * (finalCount + 1);
+    // … og det siste slukkes i samme øyeblikk som vinneren avsløres, slik at
+    // avsløringen kommer akkurat når bare vinnerloddet står igjen
+    const revealAt = mainMs + FINAL_STEP * finalCount;
     later(revealAt, () => {
+      if (lastLoser !== undefined) eliminate(lastLoser);
       setWinner(w);
       setPhase('revealed');
-    });
-    later(revealAt + CARD_DELAY, () => {
       setShowCard(true);
       if (w.owner) {
         fireConfetti();
