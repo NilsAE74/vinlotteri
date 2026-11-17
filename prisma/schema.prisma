@@ -23,6 +23,7 @@ model Wine {
   id       Int     @id @default(autoincrement())
   info     String  // F.eks. "Barolo 2019 – Italia, Piemonte · 75 cl · 14% · Kr 699,90"
   imageUrl String?
+  productCode String? // Varenummer hos Vinmonopolet (brukes til å hente mer info)
   position Int     @default(0)
 
   roundId  Int

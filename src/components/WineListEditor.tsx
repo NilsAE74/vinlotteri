@@ -111,9 +111,9 @@ function AddWine() {
     });
   }
 
-  function add(info: string, imageUrl: string | null) {
+  function add(info: string, imageUrl: string | null, productCode: string | null = null) {
     startAdd(async () => {
-      const res = await addWine(info, imageUrl);
+      const res = await addWine(info, imageUrl, productCode);
       setStatus(res.success ? '' : res.message ?? 'Noe gikk galt');
       if (res.success) {
         setResults([]);
@@ -145,7 +145,7 @@ function AddWine() {
               <button
                 type="button"
                 disabled={isAdding}
-                onClick={() => add(formatWine(w), w.imageUrl)}
+                onClick={() => add(formatWine(w), w.imageUrl, w.code)}
                 className="w-full flex items-center gap-3 p-2 text-left hover:bg-[#722F37]/20 wine-border-faint border-b disabled:opacity-50"
               >
                 {w.imageUrl ? (

@@ -258,7 +258,7 @@ function revalidateWines() {
 }
 
 // Legger til en flaske nederst i listen for den aktive runden
-export async function addWine(info: string, imageUrl: string | null) {
+export async function addWine(info: string, imageUrl: string | null, productCode: string | null = null) {
   if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
   const text = info.trim();
   if (!text) return { success: false, message: 'Mangler tekst' };
@@ -274,6 +274,8 @@ export async function addWine(info: string, imageUrl: string | null) {
       roundId: activeRound.id,
       info: text,
       imageUrl: imageUrl || null,
+      // Kun sifre: varenummeret brukes i URL mot Vinmonopolet
+      productCode: productCode && /^\d+$/.test(productCode) ? productCode : null,
       position: (activeRound.wines[0]?.position ?? -1) + 1,
     },
   });
