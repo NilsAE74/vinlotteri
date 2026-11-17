@@ -91,7 +91,10 @@ export async function getAdminStats(): Promise<{
 
 
 // 2. TREKKE-LOGIKK (MED "VINN KUN ÉN GANG" REGEL)
-export async function drawWinnerAction() {
+// onlySold: trekk kun blant solgte lodd (brukes av rutenett-visningen).
+// Uten den trekkes det blant alle lodd, også usolgte (klassisk visning).
+export async function drawWinnerAction(options?: { onlySold?: boolean }) {
+  const onlySold = options?.onlySold === true;
   if (!(await isAdmin())) return { success: false, message: "Ikke innlogget som admin." };
   try {
     const activeRound = await prisma.lotteryRound.findFirst({
@@ -106,14 +109,16 @@ export async function drawWinnerAction() {
      .filter((t: any) => t.hasWon)
      .map((t: any) => t.ownerName);
 
-    // 2. Finn kandidater (alle lodd som ikke har vunnet, og hvis solgt: eier har ikke vunnet før)
+    // 2. Finn kandidater (alle lodd som ikke har vunnet, og hvis solgt: eier har ikke vunnet før).
+    //    Med onlySold er usolgte lodd ikke med i potten.
     const candidates = activeRound.tickets.filter((t: any) =>
       !t.hasWon &&
+      (onlySold ? t.isTaken && t.ownerName !== null : true) &&
       (t.ownerName === null || !previousWinners.includes(t.ownerName))
     );
 
     if (candidates.length === 0) {
-      return { success: false, message: "Ingen flere unike vinnere igjen i potten!" };
+      return { success: false, message: onlySold ? "Ingen flere solgte lodd med nye vinnere igjen i potten!" : "Ingen flere unike vinnere igjen i potten!" };
     }
 
     // 3. Trekk vinner
@@ -338,6 +343,105 @@ export async function resetDraw() {
   const result = await prisma.ticket.updateMany({
     where: { roundId: activeRound.id, hasWon: true },
     data: { hasWon: false },
+  });
+
+  revalidatePath('/');
+  revalidatePath('/admin', 'layout');
+  return { success: true, count: result.count };
+}
+
+// 7. TESTDATA (kun i utviklingsmodus)
+// Fiktive navn med vin-etternavn, så testlodd aldri forveksles med ekte kjøpere
+// og kan ryddes bort trygt.
+const TEST_FIRST_NAMES = [
+  'Kari', 'Ola', 'Ingrid', 'Lars', 'Sofie', 'Henrik', 'Nora', 'Magnus', 'Emma', 'Jonas',
+  'Ida', 'Sindre', 'Maja', 'Eirik', 'Thea', 'Martin', 'Sara', 'Anders', 'Hanne', 'Per',
+];
+const TEST_LAST_NAMES = ['Druesen', 'Korkesen', 'Tanninsen', 'Rødvinsen', 'Barriquesen', 'Mustesen', 'Karaffelsen', 'Årgangsen'];
+const TEST_NAME_COUNT = 40;
+
+async function assertDevAdmin() {
+  if (!(await isAdmin())) return { success: false as const, message: 'Ikke innlogget' };
+  if (process.env.NODE_ENV === 'production') {
+    return { success: false as const, message: 'Kun tilgjengelig i utviklingsmodus' };
+  }
+  return null;
+}
+
+// Fyller opptil `count` tilfeldige LEDIGE lodd i den aktive runden med testnavn.
+// Lodd som allerede er tatt blir aldri overskrevet.
+export async function generateTestTickets(count = 100) {
+  const denied = await assertDevAdmin();
+  if (denied) return denied;
+
+  const activeRound = await prisma.lotteryRound.findFirst({ where: { isActive: true } });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+
+  const free = await prisma.ticket.findMany({
+    where: { roundId: activeRound.id, isTaken: false },
+    select: { number: true },
+  });
+  if (free.length === 0) return { success: false, message: 'Ingen ledige lodd igjen' };
+
+  // Tilfeldige ledige numre
+  const numbers = free.map(t => t.number);
+  for (let i = numbers.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+  }
+  const chosen = numbers.slice(0, Math.min(count, numbers.length));
+
+  // Et utvalg unike testnavn med ujevn vekting (noen kjøper mange lodd, andre få)
+  const allNames = TEST_FIRST_NAMES.flatMap(f => TEST_LAST_NAMES.map(l => `${f} ${l}`));
+  const names = allNames.sort(() => Math.random() - 0.5).slice(0, TEST_NAME_COUNT);
+  const weights = names.map(() => Math.random() ** 2 + 0.05);
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  const pickName = () => {
+    let r = Math.random() * totalWeight;
+    for (let i = 0; i < names.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return names[i];
+    }
+    return names[names.length - 1];
+  };
+
+  const byName = new Map<string, number[]>();
+  for (const n of chosen) {
+    const name = pickName();
+    byName.set(name, [...(byName.get(name) ?? []), n]);
+  }
+
+  // isTaken: false i where-betingelsen sikrer at ingen lodd som ble kjøpt
+  // i mellomtiden blir overskrevet
+  const results = await prisma.$transaction(
+    [...byName.entries()].map(([ownerName, nums]) =>
+      prisma.ticket.updateMany({
+        where: { roundId: activeRound.id, number: { in: nums }, isTaken: false },
+        data: { ownerName, isTaken: true },
+      })
+    )
+  );
+  const created = results.reduce((sum, r) => sum + r.count, 0);
+
+  revalidatePath('/');
+  revalidatePath('/admin', 'layout');
+  return { success: true, count: created, names: byName.size };
+}
+
+// Fjerner alle testlodd (navn med test-etternavn) i den aktive runden
+export async function removeTestTickets() {
+  const denied = await assertDevAdmin();
+  if (denied) return denied;
+
+  const activeRound = await prisma.lotteryRound.findFirst({ where: { isActive: true } });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+
+  const result = await prisma.ticket.updateMany({
+    where: {
+      roundId: activeRound.id,
+      OR: TEST_LAST_NAMES.map(l => ({ ownerName: { endsWith: ` ${l}` } })),
+    },
+    data: { ownerName: null, isTaken: false, hasWon: false },
   });
 
   revalidatePath('/');

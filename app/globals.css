@@ -61,3 +61,41 @@ body {
 .ticket-available  { background: var(--ticket-available-bg); border-color: var(--ticket-available-border); }
 .ticket-taken      { background: var(--ticket-taken-bg); border-color: var(--ticket-taken-border); }
 .grid-wrapper      { background: var(--grid-wrapper-bg); border-color: var(--grid-wrapper-border); }
+/* --- Trekningsanimasjoner --- */
+
+/* Spilleautomat: hvert hjul er en stripe med sifrene 0–9 tre ganger (30 felt).
+   Mens hjulet spinner, rulles én runde (10 felt = 1/3 av stripa) i loop. */
+@keyframes reel-spin {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-33.3333%); }
+}
+.reel-spin {
+  animation: reel-spin var(--reel-speed, 0.3s) linear infinite;
+  filter: blur(2.5px);
+}
+
+/* Når hjulet stopper, ruller det én siste runde og lander med et lite tilbakeslag.
+   --reel-from / --reel-to settes inline ut fra vinnersifferet. */
+@keyframes reel-settle {
+  from { transform: translateY(var(--reel-from)); filter: blur(2px); }
+  70%  { filter: blur(0); }
+  to   { transform: translateY(var(--reel-to)); filter: blur(0); }
+}
+.reel-settle {
+  animation: reel-settle 900ms cubic-bezier(0.15, 0.85, 0.35, 1.12) forwards;
+}
+
+/* Navnet under hjulene blinker opp ved hvert nytt lodd */
+@keyframes name-flash {
+  from { opacity: 0.35; text-shadow: 0 0 0 rgba(212, 175, 55, 0); }
+  30%  { opacity: 1;    text-shadow: 0 0 18px rgba(212, 175, 55, 0.8); }
+  to   { opacity: 0.85; text-shadow: 0 0 6px rgba(212, 175, 55, 0.3); }
+}
+.name-flash { animation: name-flash 300ms ease-out; }
+
+/* Vinnerkort som spretter inn */
+@keyframes pop-in {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.pop-in { animation: pop-in 450ms cubic-bezier(0.2, 0.8, 0.3, 1.15); }
