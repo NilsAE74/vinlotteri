@@ -2,7 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { cookies } from 'next/headers';
 import LotteryGrid from '@/src/components/LotteryGrid';
 //import WinnerReveal from '@/src/components/WinnerReveal';
-import { startNewWeeklyLottery } from '@/lib/actions'; // Sørg for at denne er i actions.ts
+import { createWeeklyRound, hasActiveRound } from '@/lib/lottery';
+import { revalidatePath } from 'next/cache';
 import { Play } from 'lucide-react'; // Ikon for start-knapp
 import WineLogo from '@/src/components/WineLogo';
 import ThemeToggle from '@/src/components/ThemeToggle';
@@ -54,9 +55,12 @@ export default async function Home() {
 
           <form action={async () => {
             'use server';
-            // Starter en ny runde med dagens ukenummer
+            // Starter en ny runde med dagens ukenummer – kun når ingen runde er aktiv,
+            // slik at denne offentlige knappen aldri kan avslutte en pågående runde.
+            if (await hasActiveRound()) return;
             const week = getWeekNumber(new Date());
-            await startNewWeeklyLottery(`Uke ${week}, ${new Date().getFullYear()}`);
+            await createWeeklyRound(`Uke ${week}, ${new Date().getFullYear()}`);
+            revalidatePath('/');
           }}>
             <button
               type="submit"

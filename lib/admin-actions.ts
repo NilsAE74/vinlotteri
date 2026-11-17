@@ -1,8 +1,8 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { PrismaClient} from '@prisma/client';
-import { startNewWeeklyLottery } from './actions';
+import { createWeeklyRound } from './lottery';
+import { checkAdminPassword, setAdminSession, isAdminAuthenticated } from './admin-auth';
 import { revalidatePath } from 'next/cache';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
@@ -11,23 +11,18 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // 1. Enkel innlogging
 export async function verifyAdminPassword(formData: FormData) {
-    const password = formData.get('password');
-    
-    if (password === process.env.ADMIN_PASSWORD) {
-      // Sett en cookie som varer i 24 timer
-      (await cookies()).set('admin_auth', 'true', { 
-        httpOnly: true, 
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 
-      });
-      return { success: true };
-    }
-    return { success: false, message: 'Feil passord' };
+  if (checkAdminPassword(formData.get('password'))) {
+    await setAdminSession(); // Cookie som varer i 24 timer
+    return { success: true };
   }
+  return { success: false, message: 'Feil passord' };
+}
 
 // . HENT DATA TIL ADMIN-SIDEN
 // Denne funksjonen returnerer nå "eligibleTickets" (de som faktisk kan vinne)
 export async function getAdminPageData() {
+  if (!(await isAdmin())) return { activeRound: null, eligibleTickets: [], takenCount: 0 };
+
   const activeRound = await prisma.lotteryRound.findFirst({
     where: { isActive: true },
     include: { tickets: true, wines: { orderBy: { position: 'asc' } } }
@@ -68,7 +63,8 @@ export async function getAdminStats(): Promise<{
   hallOfFame: HallOfFameEntry[];
   winningNumbers: any[]; // You might want to type this too
 }> {
-  
+  if (!(await isAdmin())) return { hallOfFame: [], winningNumbers: [] };
+
   // Hall of Fame: Alle vinnere gruppert etter navn med antall seiere
   const hallOfFame = await prisma.ticket.groupBy({
     by: ['ownerName'],
@@ -96,6 +92,7 @@ export async function getAdminStats(): Promise<{
 
 // 2. TREKKE-LOGIKK (MED "VINN KUN ÉN GANG" REGEL)
 export async function drawWinnerAction() {
+  if (!(await isAdmin())) return { success: false, message: "Ikke innlogget som admin." };
   try {
     const activeRound = await prisma.lotteryRound.findFirst({
       where: { isActive: true },
@@ -142,7 +139,9 @@ export async function drawWinnerAction() {
 }
 
 // 3. Wrapper for å starte ny runde (så vi kan kalle den fra Admin UI)
-export async function adminStartNewRound(formData: FormData) {
+export async function adminStartNewRound() {
+    if (!(await isAdmin())) return;
+
     const lastRound = await prisma.lotteryRound.findFirst({
         orderBy: { id: 'desc' }
     });
@@ -164,12 +163,16 @@ export async function adminStartNewRound(formData: FormData) {
         week = Math.ceil((((date.getTime() - new Date(year, 0, 1).getTime()) / 86400000) + 1) / 7);
     }
 
-    await startNewWeeklyLottery(`Uke ${week}, ${year}`);
+    await createWeeklyRound(`Uke ${week}, ${year}`);
+    revalidatePath('/');
+    revalidatePath('/admin', 'layout');
 }
 
 // Legg til denne nederst i filen:
 
 export async function toggleRoundLock() {
+  if (!(await isAdmin())) return;
+
   const activeRound = await prisma.lotteryRound.findFirst({
     where: { isActive: true },
   });
@@ -187,9 +190,7 @@ export async function toggleRoundLock() {
 
 // 4. VININFO
 
-async function isAdmin() {
-  return (await cookies()).get('admin_auth')?.value === 'true';
-}
+const isAdmin = isAdminAuthenticated;
 
 export type WineSearchResult = {
   code: string;
