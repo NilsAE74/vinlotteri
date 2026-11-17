@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { drawWinnerAction } from '@/lib/admin-actions';
 import { fireConfetti, playWinSound, speakWinner } from './drawEffects';
+import { eliminationOrder, eliminationTimes } from './drawOrder';
 
 // Trekningsvisning: alle 200 lodd vises i et rutenett, og loddene i potten
 // slukkes gradvis til bare vinneren lyser. Kun solgte lodd er med i potten;
@@ -16,18 +17,9 @@ type GridTicket = { number: number; ownerName: string | null; hasWon: boolean };
 type Winner = { number: number; owner: string | null };
 type Phase = 'idle' | 'waiting' | 'eliminating' | 'final' | 'revealed';
 
-// Tidsoppsett (ms)
-const FINAL_COUNT = 3; // De siste loddene som slukkes ett og ett, sakte
-const FINAL_STEP = 1400; // Pause mellom hvert av de siste loddene
-
-function shuffle<T>(list: T[]) {
-  const a = [...list];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+// Når så mange taperlodd gjenstår, begynner de siste loddene å pulsere i gull.
+// Selve tempoet styres av eliminationTimes i drawOrder.ts.
+const FINAL_COUNT = 3;
 
 export default function GridDrawReveal({
   tickets,
@@ -85,25 +77,29 @@ export default function GridDrawReveal({
     }
 
     const w = result.winner;
-    const losers = shuffle(eligibleNumbers.filter(n => n !== w.number));
-    const finalCount = Math.min(FINAL_COUNT, losers.length);
-    const main = losers.slice(0, losers.length - finalCount);
-    const final = losers.slice(losers.length - finalCount);
 
-    // Hovedfasen: mange lodd slukkes raskt i starten, så stadig saktere
-    const mainMs = main.length ? Math.min(7000, 1500 + main.length * 40) : 0;
-    setPhase('eliminating');
-    main.forEach((n, i) => later(mainMs * Math.pow((i + 1) / main.length, 1.8), () => eliminate(n)));
+    // Når det er like mange lodd igjen som deltakere, er alle som ikke har vunnet med (se drawOrder.ts)
+    const ownerOf = new Map(tickets.map(t => [t.number, t.ownerName?.trim() ?? null]));
+    const winnerOwner = ownerOf.get(w.number) ?? w.owner?.trim() ?? null;
+    const { losers } = eliminationOrder(eligibleNumbers, ownerOf, w.number, winnerOwner);
 
-    // Sluttfasen: de siste loddene slukkes ett og ett mens resten pulserer
-    later(mainMs, () => setPhase('final'));
-    // Alle unntatt det aller siste loddet slukkes her …
-    const lastLoser = final.at(-1);
-    final.slice(0, -1).forEach((n, i) => later(mainMs + FINAL_STEP * (i + 1), () => eliminate(n)));
+    // Tempo: pausen mellom hvert lodd øker gradvis etter hvert som det blir
+    // færre lodd igjen (se eliminationTimes i drawOrder.ts)
+    const times = eliminationTimes(losers.length);
+    setPhase(losers.length <= FINAL_COUNT ? 'final' : 'eliminating');
+    losers.forEach((n, i) => {
+      if (i === losers.length - 1) return; // Siste taper slukkes samtidig med avsløringen
+      later(times[i], () => {
+        eliminate(n);
+        // De siste loddene pulserer i gull
+        if (losers.length - i - 1 === FINAL_COUNT) setPhase('final');
+      });
+    });
 
-    // … og det siste slukkes i samme øyeblikk som vinneren avsløres, slik at
-    // avsløringen kommer akkurat når bare vinnerloddet står igjen
-    const revealAt = mainMs + FINAL_STEP * finalCount;
+    // Det siste taperloddet slukkes i samme øyeblikk som vinneren avsløres, slik
+    // at avsløringen kommer akkurat når bare vinnerloddet står igjen
+    const lastLoser = losers.at(-1);
+    const revealAt = times.at(-1) ?? 800;
     later(revealAt, () => {
       if (lastLoser !== undefined) eliminate(lastLoser);
       setWinner(w);
