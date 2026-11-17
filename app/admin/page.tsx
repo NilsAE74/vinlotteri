@@ -7,6 +7,7 @@ import { Trophy, RefreshCw, BarChart3, Lock, Unlock, Wine, Ticket, MonitorPlay }
 import WineListEditor from '@/src/components/WineListEditor';
 import TicketBookingsEditor from '@/src/components/TicketBookingsEditor';
 import ResetDrawButton from '@/src/components/ResetDrawButton';
+import TestTicketsButtons from '@/src/components/TestTicketsButtons';
 import PendingSubmitButton from '@/src/components/PendingSubmitButton';
 
 export default async function AdminPage() {
@@ -119,6 +120,9 @@ export default async function AdminPage() {
             {process.env.NODE_ENV !== 'production' && activeRound && (
               <div className="my-4">
                 <ResetDrawButton winnerCount={activeRound.tickets.filter(t => t.hasWon).length} />
+                <div className="mt-3">
+                  <TestTicketsButtons />
+                </div>
               </div>
             )}
             <form action={adminStartNewRound}>
