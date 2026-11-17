@@ -65,7 +65,7 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
           {/* Vipps betaling */}
           <div className="flex flex-col items-center gap-2 py-2">
             <p className="text-sm text-[#D4AF37]/80">
-              Betal <span className="font-bold text-[#D4AF37]">{ticketNumbers.length * 5} kr</span> via Vipps, så bekrefter du kjøpet under.
+              Betal <span className="font-bold text-[#D4AF37]">{ticketNumbers.length * 5} kr</span> via Vipps, deretter bekrefter du kjøpet under.
             </p>
             {/* QR-kode på desktop */}
             <div className="hidden md:block bg-white rounded-xl p-2 shadow-lg">
