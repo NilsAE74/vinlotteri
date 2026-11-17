@@ -9,9 +9,10 @@ import { drawWinnerAction } from '@/lib/admin-actions'; // Pass på at du import
 
 interface WinnerRevealProps {
   takenTickets: { number: number; ownerName: string | null }[];
+  large?: boolean; // Storskjermvisning (trekningssiden)
 }
 
-export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
+export default function WinnerReveal({ takenTickets, large = false }: WinnerRevealProps) {
   const router = useRouter();
   
   const [isDrawing, setIsDrawing] = useState(false);
@@ -223,7 +224,7 @@ export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
       {/* Vinner-visning / Animasjon */}
       <div className="relative mb-8">
         <div className={`
-          relative flex items-center justify-center w-64 h-64 rounded-full border-4 
+          relative flex items-center justify-center rounded-full border-4 ${large ? 'w-[28rem] h-[28rem] max-w-[80vw] max-h-[80vw]' : 'w-64 h-64'}
           ${winnerData ? 'border-[#D4AF37] bg-[#D4AF37]/10 shadow-[0_0_50px_rgba(212,175,55,0.5)]' : 'border-[#722F37]/30 bg-[#1a0b0e]'}
           transition-all duration-500
         `}>
@@ -236,11 +237,11 @@ export default function WinnerReveal({ takenTickets }: WinnerRevealProps) {
           <div className="text-center">
             {displayNumber !== null ? (
               <>
-                <div className="text-7xl font-bold text-white font-mono tracking-tighter">
+                <div className={`${large ? 'text-9xl' : 'text-7xl'} font-bold text-white font-mono tracking-tighter`}>
                   #{displayNumber}
                 </div>
                 {winnerData && (
-                   <div className="text-xl text-[#D4AF37] font-serif mt-2 animate-in slide-in-from-bottom-2 fade-in">
+                   <div className={`${large ? 'text-4xl px-6' : 'text-xl'} text-[#D4AF37] font-serif mt-2 animate-in slide-in-from-bottom-2 fade-in`}>
                      {winnerData.owner ?? 'Ikke solgt – ingen vinner'}
                    </div>
                 )}

@@ -1,22 +1,17 @@
-import { cookies } from 'next/headers';
+import Link from 'next/link';
 import AdminLogin from '@/src/components/AdminLogin';
-import WinnerReveal from '@/src/components/WinnerReveal';
 import ThemeToggle from '@/src/components/ThemeToggle';
-import { getAdminStats, adminStartNewRound, getAdminPageData } from '@/lib/admin-actions'; // HUSK Å IMPORTERE DEN NYE
-import { Trophy, RefreshCw, BarChart3 } from 'lucide-react';
-import { toggleRoundLock } from '@/lib/admin-actions';
-import { Lock, Unlock } from 'lucide-react';
-import WineLogo from '@/src/components/WineLogo';
+import { getAdminStats, adminStartNewRound, getAdminPageData, toggleRoundLock } from '@/lib/admin-actions';
+import { isAdminAuthenticated, getAdminTheme } from '@/lib/admin-auth';
+import { Trophy, RefreshCw, BarChart3, Lock, Unlock, Wine, Ticket, MonitorPlay } from 'lucide-react';
 import WineListEditor from '@/src/components/WineListEditor';
-import { Wine } from 'lucide-react';
+import TicketBookingsEditor from '@/src/components/TicketBookingsEditor';
+import ResetDrawButton from '@/src/components/ResetDrawButton';
 
 export default async function AdminPage() {
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get('admin_auth')?.value === 'true';
+  if (!(await isAdminAuthenticated())) return <AdminLogin />;
 
-  if (!isAuthenticated) return <AdminLogin />;
-
-  const theme = (cookieStore.get('admin-theme')?.value ?? 'dark') as 'dark' | 'light';
+  const theme = await getAdminTheme();
 
   // 1. Hent den nye, smarte dataen
   const { activeRound, eligibleTickets, takenCount } = await getAdminPageData();
@@ -41,17 +36,11 @@ export default async function AdminPage() {
 
         {/* --- MAIN STAGE --- */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="wine-card-alpha border border-[#722F37] rounded-2xl p-8 shadow-[0_0_50px_rgba(114,47,55,0.2)] text-center min-h-[400px] flex flex-col justify-center">
-            <h2 className="text-2xl font-serif text-[#D4AF37] mb-4">Live Trekning</h2>
+          {/* Trekning: åpnes som egen storskjermside */}
+          <div className="wine-card-alpha border border-[#722F37] rounded-2xl p-8 shadow-[0_0_50px_rgba(114,47,55,0.2)] text-center">
+            <h2 className="text-2xl font-serif text-[#D4AF37] mb-4">Trekning</h2>
 
-            {activeRound ? (
-              // Sender nå inn kun de som KAN vinne til animasjonen
-              <WinnerReveal takenTickets={eligibleTickets} />
-            ) : (
-              <p className="wine-text-subtle">Start en ny runde for å trekke.</p>
-            )}
-
-            <div className="mt-8 flex justify-center gap-8 text-sm">
+            <div className="flex justify-center gap-8 text-sm mb-6">
               <div className="wine-text-subtle">
                 Totalt solgt: <span className="wine-text font-bold">{takenCount}</span>
               </div>
@@ -59,6 +48,19 @@ export default async function AdminPage() {
                 Lodd igjen i potten: <span className="wine-text font-bold">{eligibleTickets.length}</span>
               </div>
             </div>
+
+            {activeRound ? (
+              <Link
+                href="/admin/trekning"
+                target="_blank"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-[#722F37] text-white font-bold text-lg uppercase tracking-widest rounded-lg shadow-xl hover:bg-[#8a3842] transition-all"
+              >
+                <MonitorPlay className="w-5 h-5" /> Åpne live-trekning
+              </Link>
+            ) : (
+              <p className="wine-text-subtle">Start en ny runde for å trekke.</p>
+            )}
+            <p className="text-xs wine-text-subtle mt-3">Åpnes i ny fane – egnet for storskjerm/projektor.</p>
           </div>
 
           {/* Vininfo */}
@@ -68,6 +70,20 @@ export default async function AdminPage() {
                 <Wine className="w-5 h-5" /> Ukens viner
               </h3>
               <WineListEditor wines={activeRound.wines} />
+            </div>
+          )}
+
+          {/* Solgte lodd / feilbookinger */}
+          {activeRound && (
+            <div className="wine-card-bg border border-[#722F37]/50 rounded-xl p-6">
+              <h3 className="text-[#D4AF37] font-serif text-xl mb-4 flex items-center gap-2">
+                <Ticket className="w-5 h-5" /> Solgte lodd
+              </h3>
+              <TicketBookingsEditor
+                tickets={activeRound.tickets
+                  .filter(t => t.isTaken)
+                  .map(({ id, number, ownerName, hasWon }) => ({ id, number, ownerName, hasWon }))}
+              />
             </div>
           )}
 
@@ -98,6 +114,12 @@ export default async function AdminPage() {
                 )}
               </button>
             </form>
+            {/* Kun i utviklingsmodus (npm run dev), for testing */}
+            {process.env.NODE_ENV !== 'production' && activeRound && (
+              <div className="my-4">
+                <ResetDrawButton winnerCount={activeRound.tickets.filter(t => t.hasWon).length} />
+              </div>
+            )}
             <form action={adminStartNewRound}>
               <button
                 type="submit"

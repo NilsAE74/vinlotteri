@@ -294,3 +294,46 @@ export async function deleteWine(id: number) {
   revalidateWines();
   return { success: true };
 }
+
+// 5. FEILBOOKINGER
+
+// Frigir lodd i den aktive runden slik at de blir ledige igjen.
+// Lodd som allerede har vunnet blir ikke rørt.
+export async function releaseTickets(ticketIds: number[]) {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+  if (ticketIds.length === 0) return { success: false, message: 'Ingen lodd valgt' };
+
+  const activeRound = await prisma.lotteryRound.findFirst({ where: { isActive: true } });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+
+  const result = await prisma.ticket.updateMany({
+    where: { id: { in: ticketIds }, roundId: activeRound.id, hasWon: false },
+    data: { ownerName: null, isTaken: false },
+  });
+
+  revalidatePath('/');
+  revalidatePath('/admin');
+  return { success: true, count: result.count };
+}
+
+// 6. NULLSTILL TREKNING
+// Fjerner alle vinnere i den aktive runden. Solgte lodd og navn beholdes.
+// Kun for testing: blokkeres i produksjon.
+export async function resetDraw() {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+  if (process.env.NODE_ENV === 'production') {
+    return { success: false, message: 'Kun tilgjengelig i utviklingsmodus' };
+  }
+
+  const activeRound = await prisma.lotteryRound.findFirst({ where: { isActive: true } });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+
+  const result = await prisma.ticket.updateMany({
+    where: { roundId: activeRound.id, hasWon: true },
+    data: { hasWon: false },
+  });
+
+  revalidatePath('/');
+  revalidatePath('/admin', 'layout');
+  return { success: true, count: result.count };
+}
