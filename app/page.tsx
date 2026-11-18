@@ -12,6 +12,7 @@ import WineShowcase from '@/src/components/WineShowcase';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import CountdownTimer from '@/src/components/CountdownTimer';
 import TicketProgressBar from '@/src/components/TicketProgressBar';
+import KakeTidslinje, { type KakeUke } from '@/src/components/KakeTidslinje';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
@@ -85,13 +86,24 @@ export default async function Home() {
   const tickets: Ticket[] = activeRound.tickets;
   const takenTickets = tickets.filter(t => t.isTaken);
 
-  // Hent neste kakebaker fra Kakeliste (første uke >= i dag)
+  // Hent hele kakelisten. Bare ukene som står her har kake.
   const todayWeek = getWeekNumber(new Date());
-  const nextKakeListe = await prisma.$queryRaw<{ Navn: string; uke: number }[]>`
-    SELECT "Navn", uke FROM "Kakeliste" WHERE uke >= ${todayWeek} ORDER BY uke ASC LIMIT 1
-  `;
-  const nextKake = nextKakeListe[0] ?? null;
-  const kakebaker = nextKake?.Navn ?? null;
+  const kakeRader = await prisma.kakeliste.findMany({
+    where: { uke: { not: null }, Navn: { not: null } },
+    select: { uke: true, Navn: true },
+    orderBy: [{ uke: 'asc' }, { id: 'asc' }],
+  });
+  // Slå sammen flere bakere i samme uke til ett kort
+  const kakeUker: KakeUke[] = [];
+  for (const { uke, Navn } of kakeRader) {
+    const navn = Navn!.trim();
+    if (!navn) continue;
+    const siste = kakeUker[kakeUker.length - 1];
+    if (siste && siste.uke === uke) siste.navn.push(navn);
+    else kakeUker.push({ uke: uke!, navn: [navn] });
+  }
+  // Neste kakebaker = første kakeuke som ikke er passert
+  const nextKake = kakeUker.find(k => k.uke >= todayWeek) ?? null;
   const kakeUke = nextKake?.uke ?? null;
 
   return (
@@ -120,14 +132,11 @@ export default async function Home() {
           </p>
         
 
-        {/* Kakebaker */}
-        {kakebaker && (
-          <div className="mb-4 text-center wine-text-muted text-sm">
-            Ukens kakebaker: <span className="text-[#D4AF37] font-semibold">{kakebaker}</span> 🎂
-          </div>
-        )}
         </header>
-        
+
+        {/* Kakebakere – kun ukene som står i kakelisten */}
+        <KakeTidslinje uker={kakeUker} currentWeek={todayWeek} />
+
         {/* Ukens vin – trykk på en vin for mer info */}
         {activeRound.wines.length > 0 && (
           <WineShowcase
@@ -165,7 +174,7 @@ export default async function Home() {
 function getWeekNumber(d: Date) {
   d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  var weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
   return weekNo;
 }
