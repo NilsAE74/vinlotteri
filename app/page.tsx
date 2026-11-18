@@ -124,8 +124,11 @@ export default async function Home() {
           <div className="inline-block px-3 py-1 border border-[#D4AF37]/30 rounded-full text-[#D4AF37] text-xs uppercase tracking-widest mb-2">
             {kakeUke ? `Uke ${kakeUke}` : activeRound.name}
           </div>
-          <h1 className="text-5xl md:text-7xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-[#D4AF37] to-[#8a6e1f] drop-shadow-sm">
-            <WineLogo className="w-16 h-16 text-[#D4AF37] mx-auto" /> Vinlotteri
+          <h1 className="flex items-center justify-center gap-2 md:gap-4 text-5xl md:text-7xl font-serif drop-shadow-sm">
+            <span aria-hidden="true" className="flex"><WineLogo className="w-8 h-8 md:w-14 md:h-14 shrink-0 text-[#D4AF37]" /></span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#D4AF37] to-[#8a6e1f]">Vinlotteri</span>
+            {/* Speilvendt glass etter, så de to «skåler» mot hverandre */}
+            <span aria-hidden="true" className="flex"><WineLogo className="w-8 h-8 md:w-14 md:h-14 shrink-0 text-[#D4AF37] -scale-x-100" /></span>
           </h1>
           <p className="wine-text-muted text-lg font-light tracking-wide max-w-2xl mx-auto">
             Velg dine lykketall.<br />
