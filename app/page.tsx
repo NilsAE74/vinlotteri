@@ -128,6 +128,11 @@ export default async function Home() {
           </h1>
         </header>
 
+        {/* Countdown */}
+        <div className="mb-5">
+          <CountdownTimer roundName={nextKake ? `Uke ${nextKake.uke}, ${nextKake.aar}` : (activeRound.name ?? '')} />
+        </div>
+
         {/* Kakebakere – kun ukene som står i kakelisten */}
         <KakeTidslinje uker={kakeUker} currentYear={today.year} currentWeek={today.week} />
 
@@ -141,11 +146,6 @@ export default async function Home() {
         {/* Progress bar */}
         <div className="mb-4">
           <TicketProgressBar taken={takenTickets.length} total={tickets.length} />
-        </div>
-
-        {/* Countdown */}
-        <div className="mb-5">
-          <CountdownTimer roundName={nextKake ? `Uke ${nextKake.uke}, ${nextKake.aar}` : (activeRound.name ?? '')} />
         </div>
 
         {/* The Grid */}
