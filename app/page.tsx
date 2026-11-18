@@ -105,6 +105,11 @@ export default async function Home() {
   // Neste kakebaker = første kakeuke (år + uke) som ikke er passert
   const nextKake = kakeUker.find(k => k.aar * 100 + k.uke >= today.year * 100 + today.week) ?? null;
 
+  // Navneforslag i kjøpsdialogen, så samme person alltid skrives likt
+  const ansatte = await prisma.ansatte.findMany({ where: { Navn: { not: null } }, select: { Navn: true } });
+  const ansattNavn = [...new Set(ansatte.map(a => a.Navn!.trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'nb'));
+
   return (
     <main className="min-h-screen wine-page-bg overflow-x-hidden selection:bg-[#D4AF37] selection:text-black">
       {/* Background Ambience – only visible in dark mode */}
@@ -150,7 +155,7 @@ export default async function Home() {
 
         {/* The Grid */}
         <div className="grid-wrapper backdrop-blur-sm rounded-2xl border p-1 shadow-2xl">
-          <LotteryGrid tickets={tickets} />
+          <LotteryGrid tickets={tickets} nameSuggestions={ansattNavn} />
         </div>
 
         <footer className="text-center wine-text-subtle text-sm mt-6 py-4">
