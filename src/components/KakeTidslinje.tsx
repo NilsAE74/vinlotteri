@@ -81,10 +81,6 @@ export default function KakeTidslinje({ uker, currentYear, currentWeek }: KakeTi
 
   return (
     <section aria-label="Kakebakere" className="mb-5">
-      <h2 className="text-center text-xs uppercase tracking-widest text-[#D4AF37]/80 mb-3">
-        Kakebakere 🎂
-      </h2>
-
       <div
         ref={scrollerRef}
         onPointerDown={onPointerDown}
