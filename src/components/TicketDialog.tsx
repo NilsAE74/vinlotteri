@@ -9,20 +9,43 @@ interface TicketDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;   // Ny callback for å tømme valgte lodd i griden
+  nameSuggestions?: string[]; // Navn fra Ansatte-tabellen
 }
 
 const PRICE_PER_TICKET = 5;
+const SAVED_NAME_KEY = 'vinlotteri-navn';
+
+// Navnet fra forrige kjøp på denne enheten. localStorage kan mangle eller
+// kaste (privat modus, blokkert lagring), så alt er pakket inn i try/catch.
+function readSavedName(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(SAVED_NAME_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function saveName(name: string) {
+  try {
+    window.localStorage.setItem(SAVED_NAME_KEY, name);
+  } catch {
+    // Ikke kritisk – da må navnet bare skrives inn neste gang
+  }
+}
 const VIPPS_URL = 'https://qr.vipps.no/box/aae883d3-b423-4666-a1c3-4d0c6c3749f6/pay-in';
 
 // Kjøpet skjer i to steg:
 //   1. Skriv navn og bekreft → loddene reserveres.
 //   2. Betal med Vipps (QR på desktop, knapp på mobil).
-export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess }: TicketDialogProps) {
+export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess, nameSuggestions = [] }: TicketDialogProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Settes når kjøpet er bekreftet. Tar vare på loddene, siden utvalget i
   // rutenettet tømmes med en gang.
   const [confirmed, setConfirmed] = useState<{ name: string; numbers: number[] } | null>(null);
+  // Forhåndsutfylt med navnet fra forrige kjøp på denne enheten
+  const [name, setName] = useState(readSavedName);
 
   if (!isOpen) return null;
 
@@ -40,10 +63,18 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
     // Send arrayet som en JSON-streng
     formData.append('numbers', JSON.stringify(numbers));
 
+    // Skrives navnet likt som i ansattlisten (uansett store/små bokstaver),
+    // bruk skrivemåten fra listen. Da gjenkjennes samme person på tvers av kjøp.
+    const typed = String(formData.get('name') ?? '').trim().replace(/\s+/g, ' ');
+    const canonical = nameSuggestions.find(n => n.toLocaleLowerCase('nb') === typed.toLocaleLowerCase('nb')) ?? typed;
+    formData.set('name', canonical);
+
     const result = await bookTicket(formData);
 
     if (result.success) {
-      setConfirmed({ name: String(formData.get('name') ?? '').trim(), numbers });
+      saveName(canonical);
+      setName(canonical);
+      setConfirmed({ name: canonical, numbers });
       onSuccess(); // Tøm utvalget i rutenettet
     } else {
       setError(result.message || "Noe gikk galt");
@@ -79,11 +110,22 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
                 id="name"
                 type="text"
                 required
-                autoFocus
-                placeholder="F.eks. Ola Nordmann"
+                // Tastaturet åpnes bare når navnet mangler
+                autoFocus={!name}
+                value={name}
+                onChange={e => setName(e.target.value)}
+                list={nameSuggestions.length > 0 ? 'ansatte-navn' : undefined}
+                autoComplete="name"
+                placeholder="Skriv eller velg navnet ditt"
                 className="w-full bg-[#2a1216] border border-[#5a252c] rounded-md p-3 text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all"
               />
             </div>
+
+            {nameSuggestions.length > 0 && (
+              <datalist id="ansatte-navn">
+                {nameSuggestions.map(n => <option key={n} value={n} />)}
+              </datalist>
+            )}
 
             {error && (
               <div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-900/50">
@@ -101,6 +143,8 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
               </button>
               <button
                 type="submit"
+                // Med navnet allerede utfylt holder det å trykke Enter / «Bekreft»
+                autoFocus={!!name}
                 disabled={isPending}
                 className="px-6 py-2 bg-[#D4AF37] text-[#1a0b0e] font-bold rounded-md hover:bg-[#b5952f] transition-all disabled:opacity-50 flex items-center gap-2"
               >

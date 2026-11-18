@@ -13,7 +13,7 @@ type Ticket = {
   hasWon: boolean;
 };
 
-export default function LotteryGrid({ tickets }: { tickets: Ticket[] }) {
+export default function LotteryGrid({ tickets, nameSuggestions = [] }: { tickets: Ticket[]; nameSuggestions?: string[] }) {
   // Endret fra single number til array
   const [selectedTickets, setSelectedTickets] = useState<number[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -96,6 +96,7 @@ export default function LotteryGrid({ tickets }: { tickets: Ticket[] }) {
 
       <TicketDialog 
         ticketNumbers={selectedTickets}
+        nameSuggestions={nameSuggestions}
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSuccess={() => setSelectedTickets([])} // Tømmer utvalget etter kjøp
