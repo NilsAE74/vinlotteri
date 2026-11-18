@@ -1,0 +1,21 @@
+# Dependabot lager pull requests når avhengigheter har sikkerhetsfikser eller nye versjoner.
+# Slå også på "Dependabot alerts" og "Dependabot security updates" under
+# Settings → Code security på GitHub.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Oslo
+    open-pull-requests-limit: 5
+    groups:
+      # Samle små oppdateringer i én PR, så det ikke blir for mye støy
+      minor-og-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

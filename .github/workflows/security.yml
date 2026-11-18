@@ -1,0 +1,57 @@
+# Sikkerhetssjekk: kjører ved push og pull request mot master, og hver mandag.
+name: Sikkerhetssjekk
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '0 6 * * 1' # mandager kl. 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Avhengigheter (npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # Feiler ved kjente sårbarheter med alvorlighet "high" eller "critical"
+      # i pakker som brukes i produksjon
+      - run: npm audit --omit=dev --audit-level=high
+
+  lint:
+    name: Lint og typesjekk
+    runs-on: ubuntu-latest
+    env:
+      # prisma generate krever en verdi, men kobler seg ikke til databasen
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run lint
+      - run: npx tsc --noEmit
+
+  secrets:
+    name: Hemmeligheter i koden (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # hele historikken, ikke bare siste commit
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
