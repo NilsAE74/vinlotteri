@@ -32,13 +32,13 @@ export async function getAdminPageData() {
 
     // Finn navnene på de som allerede har vunnet i denne runden
     const winnersInRound = activeRound.tickets
-    .filter((t: any) => t.hasWon)
-    .map((t: any) => t.ownerName); // F.eks ["Ola Nordmann", "Kari"]
+    .filter((t) => t.hasWon)
+    .map((t) => t.ownerName); // F.eks ["Ola Nordmann", "Kari"]
 
     // Filtrer loddene:
   // 1. Må ikke allerede ha vunnet
   // 2. Eieren (hvis solgt) må IKKE ha vunnet før
-  const eligibleTickets = activeRound.tickets.filter((t: any) =>
+  const eligibleTickets = activeRound.tickets.filter((t) =>
     !t.hasWon &&
     (t.ownerName === null || !winnersInRound.includes(t.ownerName))
   );
@@ -46,7 +46,7 @@ export async function getAdminPageData() {
   return { 
     activeRound, 
     eligibleTickets, // Dette er "Potten" nå
-    takenCount: activeRound.tickets.filter((t: any) => t.isTaken).length // Totalt solgt (for statistikk)
+    takenCount: activeRound.tickets.filter((t) => t.isTaken).length // Totalt solgt (for statistikk)
   };
 }
 
@@ -61,7 +61,7 @@ type HallOfFameEntry = {
 // 3. Hent statistikk og historikk
 export async function getAdminStats(): Promise<{
   hallOfFame: HallOfFameEntry[];
-  winningNumbers: any[]; // You might want to type this too
+  winningNumbers: { number: number; _count: { number: number } }[];
 }> {
   if (!(await isAdmin())) return { hallOfFame: [], winningNumbers: [] };
 
@@ -106,12 +106,12 @@ export async function drawWinnerAction(options?: { onlySold?: boolean }) {
 
      // 1. Finn navn på de som ALLEREDE har vunnet
      const previousWinners = activeRound.tickets
-     .filter((t: any) => t.hasWon)
-     .map((t: any) => t.ownerName);
+     .filter((t) => t.hasWon)
+     .map((t) => t.ownerName);
 
     // 2. Finn kandidater (alle lodd som ikke har vunnet, og hvis solgt: eier har ikke vunnet før).
     //    Med onlySold er usolgte lodd ikke med i potten.
-    const candidates = activeRound.tickets.filter((t: any) =>
+    const candidates = activeRound.tickets.filter((t) =>
       !t.hasWon &&
       (onlySold ? t.isTaken && t.ownerName !== null : true) &&
       (t.ownerName === null || !previousWinners.includes(t.ownerName))

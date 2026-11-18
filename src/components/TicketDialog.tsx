@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { bookTicket } from '@/lib/actions';
 import { Loader2 } from 'lucide-react';
 

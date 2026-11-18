@@ -12,6 +12,7 @@ import WineShowcase from '@/src/components/WineShowcase';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import CountdownTimer from '@/src/components/CountdownTimer';
 import TicketProgressBar from '@/src/components/TicketProgressBar';
+import KakeTidslinje, { type KakeUke } from '@/src/components/KakeTidslinje';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
@@ -85,13 +86,24 @@ export default async function Home() {
   const tickets: Ticket[] = activeRound.tickets;
   const takenTickets = tickets.filter(t => t.isTaken);
 
-  // Hent neste kakebaker fra Kakeliste (første uke >= i dag)
-  const todayWeek = getWeekNumber(new Date());
-  const nextKakeListe = await prisma.$queryRaw<{ Navn: string; uke: number }[]>`
-    SELECT "Navn", uke FROM "Kakeliste" WHERE uke >= ${todayWeek} ORDER BY uke ASC LIMIT 1
-  `;
-  const nextKake = nextKakeListe[0] ?? null;
-  const kakebaker = nextKake?.Navn ?? null;
+  // Hent hele kakelisten. Bare ukene som står her har kake.
+  const today = getIsoWeek(new Date());
+  const kakeRader = await prisma.kakeliste.findMany({
+    where: { uke: { not: null }, Navn: { not: null } },
+    select: { aar: true, uke: true, Navn: true },
+    orderBy: [{ aar: 'asc' }, { uke: 'asc' }, { id: 'asc' }],
+  });
+  // Slå sammen flere bakere i samme uke til ett kort
+  const kakeUker: KakeUke[] = [];
+  for (const { aar, uke, Navn } of kakeRader) {
+    const navn = Navn!.trim();
+    if (!navn) continue;
+    const siste = kakeUker[kakeUker.length - 1];
+    if (siste && siste.aar === aar && siste.uke === uke) siste.navn.push(navn);
+    else kakeUker.push({ aar, uke: uke!, navn: [navn] });
+  }
+  // Neste kakebaker = første kakeuke (år + uke) som ikke er passert
+  const nextKake = kakeUker.find(k => k.aar * 100 + k.uke >= today.year * 100 + today.week) ?? null;
   const kakeUke = nextKake?.uke ?? null;
 
   return (
@@ -120,14 +132,11 @@ export default async function Home() {
           </p>
         
 
-        {/* Kakebaker */}
-        {kakebaker && (
-          <div className="mb-4 text-center wine-text-muted text-sm">
-            Ukens kakebaker: <span className="text-[#D4AF37] font-semibold">{kakebaker}</span> 🎂
-          </div>
-        )}
         </header>
-        
+
+        {/* Kakebakere – kun ukene som står i kakelisten */}
+        <KakeTidslinje uker={kakeUker} currentYear={today.year} currentWeek={today.week} />
+
         {/* Ukens vin – trykk på en vin for mer info */}
         {activeRound.wines.length > 0 && (
           <WineShowcase
@@ -142,7 +151,7 @@ export default async function Home() {
 
         {/* Countdown */}
         <div className="mb-10">
-          <CountdownTimer roundName={kakeUke ? `Uke ${kakeUke}, ${new Date().getFullYear()}` : (activeRound.name ?? '')} />
+          <CountdownTimer roundName={nextKake ? `Uke ${nextKake.uke}, ${nextKake.aar}` : (activeRound.name ?? '')} />
         </div>
 
         {/* The Grid */}
@@ -161,11 +170,18 @@ export default async function Home() {
   );
 }
 
+// ISO-uke med tilhørende ISO-år (uke 1 kan starte i desember, uke 53 kan havne i januar)
+function getIsoWeek(date: Date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  return { year: d.getUTCFullYear(), week: getWeekNumber(date) };
+}
+
 // Hjelpefunksjon for ukenummer
 function getWeekNumber(d: Date) {
   d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  var weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
   return weekNo;
 }
