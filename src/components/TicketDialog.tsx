@@ -11,60 +11,109 @@ interface TicketDialogProps {
   onSuccess: () => void;   // Ny callback for å tømme valgte lodd i griden
 }
 
+const PRICE_PER_TICKET = 5;
+const VIPPS_URL = 'https://qr.vipps.no/box/aae883d3-b423-4666-a1c3-4d0c6c3749f6/pay-in';
+
+// Kjøpet skjer i to steg:
+//   1. Skriv navn og bekreft → loddene reserveres.
+//   2. Betal med Vipps (QR på desktop, knapp på mobil).
 export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess }: TicketDialogProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Settes når kjøpet er bekreftet. Tar vare på loddene, siden utvalget i
+  // rutenettet tømmes med en gang.
+  const [confirmed, setConfirmed] = useState<{ name: string; numbers: number[] } | null>(null);
 
   if (!isOpen) return null;
+
+  function handleClose() {
+    setConfirmed(null);
+    setError(null);
+    onClose();
+  }
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true);
     setError(null);
-    
+
+    const numbers = [...ticketNumbers];
     // Send arrayet som en JSON-streng
-    formData.append('numbers', JSON.stringify(ticketNumbers));
+    formData.append('numbers', JSON.stringify(numbers));
 
     const result = await bookTicket(formData);
 
     if (result.success) {
-      onSuccess(); // Tøm valg og lukk
-      onClose();
+      setConfirmed({ name: String(formData.get('name') ?? '').trim(), numbers });
+      onSuccess(); // Tøm utvalget i rutenettet
     } else {
       setError(result.message || "Noe gikk galt");
     }
     setIsPending(false);
   }
 
+  const numbers = confirmed?.numbers ?? ticketNumbers;
+  const amount = numbers.length * PRICE_PER_TICKET;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md bg-[#1a0b0e] border border-[#722F37] rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="bg-[#722F37] p-4 text-center">
           <h2 className="text-xl font-serif text-[#D4AF37]">
-            Kjøp {ticketNumbers.length} lodd
+            {confirmed
+              ? `Takk${confirmed.name ? `, ${confirmed.name}` : ''}!`
+              : `Kjøp ${numbers.length} lodd · ${amount} kr`}
           </h2>
           <p className="text-xs text-[#D4AF37]/80 mt-1">
-            Loddnr: {ticketNumbers.join(', ')}
+            {confirmed ? 'Dine lodd: ' : 'Loddnr: '}
+            {numbers.join(', ')}
           </p>
         </div>
-        
-        <form action={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">Navn</label>
-            <input
-              name="name"
-              id="name"
-              type="text"
-              required
-              autoFocus
-              placeholder="F.eks. Ola Nordmann"
-              className="w-full bg-[#2a1216] border border-[#5a252c] rounded-md p-3 text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all"
-            />
-          </div>
 
-          {/* Vipps betaling */}
-          <div className="flex flex-col items-center gap-2 py-2">
-            <p className="text-sm text-[#D4AF37]/80">
-              Betal <span className="font-bold text-[#D4AF37]">{ticketNumbers.length * 5} kr</span> via Vipps, deretter bekrefter du kjøpet under.
+        {!confirmed ? (
+          // --- Steg 1: navn og bekreftelse ---
+          <form action={handleSubmit} className="p-6 space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">Navn</label>
+              <input
+                name="name"
+                id="name"
+                type="text"
+                required
+                autoFocus
+                placeholder="F.eks. Ola Nordmann"
+                className="w-full bg-[#2a1216] border border-[#5a252c] rounded-md p-3 text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all"
+              />
+            </div>
+
+            {error && (
+              <div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-900/50">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                Avbryt
+              </button>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="px-6 py-2 bg-[#D4AF37] text-[#1a0b0e] font-bold rounded-md hover:bg-[#b5952f] transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isPending ? 'Bekrefter...' : 'Bekreft kjøp'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          // --- Steg 2: betaling ---
+          <div className="p-6 flex flex-col items-center gap-3 text-center">
+            <p className="text-sm text-gray-300">
+              Loddene er dine. Betal <span className="font-bold text-[#D4AF37]">{amount} kr</span> med Vipps for å fullføre.
             </p>
             {/* QR-kode på desktop */}
             <div className="hidden md:block bg-white rounded-xl p-2 shadow-lg">
@@ -74,39 +123,22 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
             <p className="hidden md:block text-xs text-gray-500">Skann med kameraet eller Vipps-appen</p>
             {/* Lenke på mobil */}
             <a
-              href="https://qr.vipps.no/box/aae883d3-b423-4666-a1c3-4d0c6c3749f6/pay-in"
+              href={VIPPS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="md:hidden flex items-center gap-2 px-5 py-3 bg-[#FF5B24] text-white font-bold rounded-lg hover:bg-[#e04e1e] transition-colors text-sm"
+              className="md:hidden w-full flex items-center justify-center gap-2 px-5 py-3 bg-[#FF5B24] text-white font-bold rounded-lg hover:bg-[#e04e1e] transition-colors"
             >
-              Betal med Vipps
+              Betal {amount} kr med Vipps
             </a>
-          </div>
-
-          {error && (
-            <div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-900/50">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3 justify-end mt-4">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+              onClick={handleClose}
+              className="mt-1 px-6 py-2 text-sm text-gray-400 hover:text-white transition-colors"
             >
-              Avbryt
-            </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="px-6 py-2 bg-[#D4AF37] text-[#1a0b0e] font-bold rounded-md hover:bg-[#b5952f] transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Kjøper...' : 'Bekreft Kjøp'}
+              Ferdig
             </button>
           </div>
-        </form>
+        )}
       </div>
     </div>
   );
