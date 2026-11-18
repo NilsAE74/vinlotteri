@@ -108,6 +108,13 @@ body {
           mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
 }
 .kake-scroller::-webkit-scrollbar { display: none; }
+/* Dra med mus: grab-peker, og ingen snap/smooth mens man drar. */
+.kake-scroller { cursor: grab; }
+.kake-scroller.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
 
 .kake-focus {
   animation: kake-glow 3s ease-in-out infinite;
