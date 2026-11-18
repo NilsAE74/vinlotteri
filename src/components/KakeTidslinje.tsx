@@ -112,7 +112,7 @@ export default function KakeTidslinje({ uker, currentYear, currentWeek }: KakeTi
                   // Kortet for aktuell kakebaker er h-32, de andre halvparten (h-16).
                   'relative snap-center shrink-0 w-36 rounded-xl border px-3 text-center transition-all flex flex-col justify-center',
                   isFocus
-                    ? 'h-32 py-3 kake-focus wine-card-bg border-[#D4AF37] scale-105'
+                    ? 'h-32 py-3 kake-focus wine-card-bg border-[#D4AF37]'
                     : 'h-16 py-2 wine-card-alpha wine-border-faint',
                   isPast ? 'opacity-45' : '',
                 ].join(' ')}

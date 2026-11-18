@@ -116,13 +116,25 @@ body {
   scroll-behavior: auto;
 }
 
-.kake-focus {
+/* Gløden ligger i et eget lag bak innholdet og animerer bare opacity,
+   så teksten på kortet ikke tegnes på nytt og står helt stille. */
+.kake-focus { box-shadow: 0 0 12px rgba(212, 175, 55, 0.25); }
+.kake-focus::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: 0 0 28px rgba(212, 175, 55, 0.5);
+  pointer-events: none;
+  opacity: 0;
   animation: kake-glow 3s ease-in-out infinite;
+  will-change: opacity;
 }
 @keyframes kake-glow {
-  0%, 100% { box-shadow: 0 0 12px rgba(212, 175, 55, 0.25); }
-  50%      { box-shadow: 0 0 26px rgba(212, 175, 55, 0.5); }
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .kake-focus { animation: none; box-shadow: 0 0 18px rgba(212, 175, 55, 0.35); }
+  .kake-focus::before { animation: none; opacity: 0.5; }
 }
