@@ -134,7 +134,7 @@ export default async function AdminPage() {
                 Avslutt uke & Start Nytt Lotteri
               </PendingSubmitButton>
               <p className="text-xs wine-text-subtle mt-2 text-center">
-                Advarsel: Dette arkiverer nåværende runde og sletter alle lodd fra "Active"-visningen.
+                Advarsel: Dette arkiverer nåværende runde og sletter alle lodd fra &quot;Active&quot;-visningen.
               </p>
             </form>
           </div>
