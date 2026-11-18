@@ -77,7 +77,6 @@ export default function CountdownTimer({ roundName }: { roundName: string }) {
           </div>
         ))}
       </div>
-      <p className="wine-text-subtle text-xs mt-3">Fredag kl. 14:15</p>
     </div>
   );
 }

@@ -128,8 +128,8 @@ export default async function Home() {
           </h1>
         </header>
 
-        {/* Countdown */}
-        <div className="mb-5">
+        {/* Countdown – mb-12 erstatter høyden til den fjernede «Fredag kl. 14:15»-linjen */}
+        <div className="mb-12">
           <CountdownTimer roundName={nextKake ? `Uke ${nextKake.uke}, ${nextKake.aar}` : (activeRound.name ?? '')} />
         </div>
 
