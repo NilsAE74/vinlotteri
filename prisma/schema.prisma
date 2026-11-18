@@ -59,3 +59,14 @@ model Kakeliste {
   Navn       String?
   aar        Int      @default(dbgenerated("(EXTRACT(year FROM now()))::smallint")) @db.SmallInt
 }
+
+// Mislykkede admin-innlogginger, brukes til å begrense antall forsøk.
+// ipHash er en SHA-256 av IP-adressen, ikke selve adressen.
+model AdminLoginAttempt {
+  id        Int      @id @default(autoincrement())
+  ipHash    String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([ipHash, createdAt])
+  @@index([createdAt])
+}
