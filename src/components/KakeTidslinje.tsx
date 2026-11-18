@@ -4,14 +4,16 @@ import { useEffect, useRef } from 'react';
 import { Check } from 'lucide-react';
 
 export type KakeUke = {
+  aar: number;
   uke: number;
   navn: string[];
 };
 
 interface KakeTidslinjeProps {
-  /** Kun ukene som står i kakelisten, sortert stigende. */
+  /** Kun ukene som står i kakelisten, sortert stigende på år og uke. */
   uker: KakeUke[];
-  /** Inneværende ukenummer. */
+  /** Inneværende ISO-år og ukenummer. */
+  currentYear: number;
   currentWeek: number;
 }
 
@@ -20,12 +22,13 @@ interface KakeTidslinjeProps {
  * uker uten kake hoppes over. Neste (eller inneværende) kakeuke er uthevet og
  * sentreres automatisk.
  */
-export default function KakeTidslinje({ uker, currentWeek }: KakeTidslinjeProps) {
+export default function KakeTidslinje({ uker, currentYear, currentWeek }: KakeTidslinjeProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const focusRef = useRef<HTMLLIElement>(null);
 
   // Første kakeuke som ikke er passert. Finnes ingen, er alle passert.
-  const focusIndex = uker.findIndex(u => u.uke >= currentWeek);
+  const now = currentYear * 100 + currentWeek;
+  const focusIndex = uker.findIndex(u => u.aar * 100 + u.uke >= now);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -56,21 +59,28 @@ export default function KakeTidslinje({ uker, currentWeek }: KakeTidslinjeProps)
             {uker.map((u, i) => {
               const isPast = focusIndex === -1 || i < focusIndex;
               const isFocus = i === focusIndex;
-              const isThisWeek = isFocus && u.uke === currentWeek;
+              const isThisWeek = isFocus && u.aar * 100 + u.uke === now;
+              // Vis årstall på første kort i hvert år
+              const nyttAar = i === 0 || uker[i - 1].aar !== u.aar;
 
               return (
                 <li
-                  key={u.uke}
+                  key={`${u.aar}-${u.uke}`}
                   ref={isFocus ? focusRef : undefined}
                   aria-current={isFocus ? 'true' : undefined}
                   className={[
-                    'snap-center shrink-0 w-36 rounded-xl border px-3 py-3 text-center transition-all',
+                    'relative snap-center shrink-0 w-36 rounded-xl border px-3 py-3 text-center transition-all',
                     isFocus
                       ? 'kake-focus wine-card-bg border-[#D4AF37] scale-105'
                       : 'wine-card-alpha wine-border-faint',
                     isPast ? 'opacity-45' : '',
                   ].join(' ')}
                 >
+                  {nyttAar && (
+                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full border border-[#D4AF37]/50 wine-card-bg px-2 text-[10px] leading-4 tracking-widest text-[#D4AF37]">
+                      {u.aar}
+                    </span>
+                  )}
                   <div
                     className={`text-[10px] uppercase tracking-widest ${
                       isFocus ? 'text-[#D4AF37]' : 'wine-text-subtle'

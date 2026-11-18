@@ -87,23 +87,23 @@ export default async function Home() {
   const takenTickets = tickets.filter(t => t.isTaken);
 
   // Hent hele kakelisten. Bare ukene som står her har kake.
-  const todayWeek = getWeekNumber(new Date());
+  const today = getIsoWeek(new Date());
   const kakeRader = await prisma.kakeliste.findMany({
     where: { uke: { not: null }, Navn: { not: null } },
-    select: { uke: true, Navn: true },
-    orderBy: [{ uke: 'asc' }, { id: 'asc' }],
+    select: { aar: true, uke: true, Navn: true },
+    orderBy: [{ aar: 'asc' }, { uke: 'asc' }, { id: 'asc' }],
   });
   // Slå sammen flere bakere i samme uke til ett kort
   const kakeUker: KakeUke[] = [];
-  for (const { uke, Navn } of kakeRader) {
+  for (const { aar, uke, Navn } of kakeRader) {
     const navn = Navn!.trim();
     if (!navn) continue;
     const siste = kakeUker[kakeUker.length - 1];
-    if (siste && siste.uke === uke) siste.navn.push(navn);
-    else kakeUker.push({ uke: uke!, navn: [navn] });
+    if (siste && siste.aar === aar && siste.uke === uke) siste.navn.push(navn);
+    else kakeUker.push({ aar, uke: uke!, navn: [navn] });
   }
-  // Neste kakebaker = første kakeuke som ikke er passert
-  const nextKake = kakeUker.find(k => k.uke >= todayWeek) ?? null;
+  // Neste kakebaker = første kakeuke (år + uke) som ikke er passert
+  const nextKake = kakeUker.find(k => k.aar * 100 + k.uke >= today.year * 100 + today.week) ?? null;
   const kakeUke = nextKake?.uke ?? null;
 
   return (
@@ -135,7 +135,7 @@ export default async function Home() {
         </header>
 
         {/* Kakebakere – kun ukene som står i kakelisten */}
-        <KakeTidslinje uker={kakeUker} currentWeek={todayWeek} />
+        <KakeTidslinje uker={kakeUker} currentYear={today.year} currentWeek={today.week} />
 
         {/* Ukens vin – trykk på en vin for mer info */}
         {activeRound.wines.length > 0 && (
@@ -151,7 +151,7 @@ export default async function Home() {
 
         {/* Countdown */}
         <div className="mb-10">
-          <CountdownTimer roundName={kakeUke ? `Uke ${kakeUke}, ${new Date().getFullYear()}` : (activeRound.name ?? '')} />
+          <CountdownTimer roundName={nextKake ? `Uke ${nextKake.uke}, ${nextKake.aar}` : (activeRound.name ?? '')} />
         </div>
 
         {/* The Grid */}
@@ -168,6 +168,13 @@ export default async function Home() {
       </div>
     </main>
   );
+}
+
+// ISO-uke med tilhørende ISO-år (uke 1 kan starte i desember, uke 53 kan havne i januar)
+function getIsoWeek(date: Date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  return { year: d.getUTCFullYear(), week: getWeekNumber(date) };
 }
 
 // Hjelpefunksjon for ukenummer
