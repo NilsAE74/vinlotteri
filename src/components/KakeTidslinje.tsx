@@ -80,7 +80,7 @@ export default function KakeTidslinje({ uker, currentYear, currentWeek }: KakeTi
   if (uker.length === 0) return null;
 
   return (
-    <section aria-label="Kakebakere" className="mb-10">
+    <section aria-label="Kakebakere" className="mb-5">
       <h2 className="text-center text-xs uppercase tracking-widest text-[#D4AF37]/80 mb-3">
         Kakebakere 🎂
       </h2>

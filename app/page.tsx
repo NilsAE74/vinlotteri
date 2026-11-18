@@ -104,7 +104,6 @@ export default async function Home() {
   }
   // Neste kakebaker = første kakeuke (år + uke) som ikke er passert
   const nextKake = kakeUker.find(k => k.aar * 100 + k.uke >= today.year * 100 + today.week) ?? null;
-  const kakeUke = nextKake?.uke ?? null;
 
   return (
     <main className="min-h-screen wine-page-bg overflow-x-hidden selection:bg-[#D4AF37] selection:text-black">
@@ -113,28 +112,20 @@ export default async function Home() {
         <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#360f14] via-[#0d0506] to-[#000000] pointer-events-none" />
       )}
 
-      <div className="relative z-10 container mx-auto px-4 py-12">
-        {/* Theme toggle */}
-        <div className="flex justify-end mb-4">
+      <div className="relative z-10 container mx-auto px-4 py-6">
+        {/* Theme toggle – ligger i hjørnet, tar ingen egen linje */}
+        <div className="absolute top-2 right-2 md:top-4 md:right-4 z-20">
           <ThemeToggle initialTheme={theme} />
         </div>
 
         {/* Header */}
-        <header className="text-center mb-12 space-y-4">
-          <div className="inline-block px-3 py-1 border border-[#D4AF37]/30 rounded-full text-[#D4AF37] text-xs uppercase tracking-widest mb-2">
-            {kakeUke ? `Uke ${kakeUke}` : activeRound.name}
-          </div>
+        <header className="text-center mb-6">
           <h1 className="flex items-center justify-center gap-2 md:gap-4 text-5xl md:text-7xl font-serif drop-shadow-sm">
             <span aria-hidden="true" className="flex"><WineLogo className="w-8 h-8 md:w-14 md:h-14 shrink-0 text-[#D4AF37]" /></span>
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#D4AF37] to-[#8a6e1f]">Vinlotteri</span>
             {/* Speilvendt glass etter, så de to «skåler» mot hverandre */}
             <span aria-hidden="true" className="flex"><WineLogo className="w-8 h-8 md:w-14 md:h-14 shrink-0 text-[#D4AF37] -scale-x-100" /></span>
           </h1>
-          <p className="wine-text-muted text-lg font-light tracking-wide max-w-2xl mx-auto">
-            Velg dine lykketall.<br />
-          </p>
-        
-
         </header>
 
         {/* Kakebakere – kun ukene som står i kakelisten */}
@@ -148,21 +139,24 @@ export default async function Home() {
         )}
 
         {/* Progress bar */}
-        <div className="mb-8">
+        <div className="mb-4">
           <TicketProgressBar taken={takenTickets.length} total={tickets.length} />
         </div>
 
         {/* Countdown */}
-        <div className="mb-10">
+        <div className="mb-5">
           <CountdownTimer roundName={nextKake ? `Uke ${nextKake.uke}, ${nextKake.aar}` : (activeRound.name ?? '')} />
         </div>
 
         {/* The Grid */}
-        <div className="grid-wrapper backdrop-blur-sm rounded-2xl border p-1 shadow-2xl mt-8">
+        <p className="text-center wine-text-muted text-sm font-light tracking-wide mb-2">
+          Velg dine lykketall
+        </p>
+        <div className="grid-wrapper backdrop-blur-sm rounded-2xl border p-1 shadow-2xl">
           <LotteryGrid tickets={tickets} />
         </div>
 
-        <footer className="text-center wine-text-subtle text-sm mt-12 py-8">
+        <footer className="text-center wine-text-subtle text-sm mt-6 py-4">
           &copy; {new Date().getFullYear()} RENE<br />
           <a href="../admin" className="wine-text-muted hover:text-[#D4AF37]">Admin</a>
           <span className="mx-2 wine-text-subtle">·</span>

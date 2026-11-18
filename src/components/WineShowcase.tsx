@@ -12,7 +12,7 @@ export default function WineShowcase({ wines }: { wines: WineItem[] }) {
   const [open, setOpen] = useState<WineItem | null>(null);
 
   return (
-    <section className="mb-8">
+    <section className="mb-5">
       <h2 className="text-center text-[#D4AF37] text-xs uppercase tracking-widest mb-4">
         {wines.length === 1 ? 'Ukens vin' : `Ukens viner (${wines.length} flasker)`}
       </h2>
