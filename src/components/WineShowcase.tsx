@@ -1,11 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, ExternalLink, Wine as WineIcon, UtensilsCrossed } from 'lucide-react';
+import { X, ExternalLink, Wine as WineIcon, UtensilsCrossed, ChevronRight } from 'lucide-react';
 import { getWineDetails } from '@/lib/wine-details';
 import type { WineDetails } from '@/lib/wine-details-map';
 
 type WineItem = { id: number; info: string; imageUrl: string | null; productCode: string | null };
+
+// Info lagres som «Navn – Land, distrikt – 75 cl · 14,5% · Kr …».
+// Del i navn + detaljer så kortet kan vise dem på hver sin linje.
+function splitInfo(info: string) {
+  const [name, ...rest] = info.split(' – ');
+  return { name: name.trim(), details: rest.join(' · ').trim() };
+}
 
 // «Ukens viner» på forsiden. Trykk på en vin for å se mer informasjon.
 export default function WineShowcase({ wines }: { wines: WineItem[] }) {
@@ -13,34 +20,42 @@ export default function WineShowcase({ wines }: { wines: WineItem[] }) {
 
   return (
     <section className="mb-5">
-      <h2 className="text-center text-[#D4AF37] text-xs uppercase tracking-widest mb-4">
+      <h2 className="text-center text-[#D4AF37] text-xs uppercase tracking-widest mb-2">
         {wines.length === 1 ? 'Ukens vin' : `Ukens viner (${wines.length} flasker)`}
       </h2>
-      <div className="flex flex-wrap justify-center gap-4">
-        {wines.map(wine => (
-          <button
-            key={wine.id}
-            type="button"
-            onClick={() => setOpen(wine)}
-            className="group w-full sm:w-72 wine-card-alpha border border-[#722F37]/50 hover:border-[#D4AF37] rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
-            title="Vis mer info"
-          >
-            {wine.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={wine.imageUrl}
-                alt=""
-                className="w-16 h-16 object-contain shrink-0 transition-transform group-hover:scale-110"
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-center gap-2 sm:gap-3 max-w-md sm:max-w-none mx-auto">
+        {wines.map(wine => {
+          const { name, details } = splitInfo(wine.info);
+          return (
+            <button
+              key={wine.id}
+              type="button"
+              onClick={() => setOpen(wine)}
+              className="group w-full sm:w-64 wine-card-alpha border border-[#722F37]/50 hover:border-[#D4AF37] rounded-lg px-3 py-2 flex items-center gap-3 text-left transition-colors"
+              title={`${wine.info}
+Trykk for mer info`}
+            >
+              {wine.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={wine.imageUrl}
+                  alt=""
+                  className="w-8 h-12 object-contain shrink-0 transition-transform group-hover:scale-110"
+                />
+              ) : (
+                <WineIcon className="w-8 h-12 py-2 text-[#722F37] shrink-0" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="wine-text text-sm font-medium truncate">{name}</p>
+                {details && <p className="wine-text-muted text-xs truncate">{details}</p>}
+              </div>
+              <ChevronRight
+                aria-hidden
+                className="w-4 h-4 shrink-0 text-[#D4AF37]/50 group-hover:text-[#D4AF37] transition-colors"
               />
-            ) : (
-              <WineIcon className="w-16 h-16 p-3 text-[#722F37] shrink-0" />
-            )}
-            <div className="min-w-0">
-              <p className="wine-text text-sm whitespace-pre-line">{wine.info}</p>
-              <p className="text-[#D4AF37]/70 group-hover:text-[#D4AF37] text-xs mt-1">Trykk for mer info</p>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       {open && <WineDialog wine={open} onClose={() => setOpen(null)} />}
