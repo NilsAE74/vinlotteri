@@ -149,9 +149,6 @@ export default async function Home() {
         </div>
 
         {/* The Grid */}
-        <p className="text-center wine-text-muted text-sm font-light tracking-wide mb-2">
-          Velg dine lykketall
-        </p>
         <div className="grid-wrapper backdrop-blur-sm rounded-2xl border p-1 shadow-2xl">
           <LotteryGrid tickets={tickets} />
         </div>
