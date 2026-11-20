@@ -2,19 +2,31 @@
 
 import { PrismaClient} from '@prisma/client';
 import { createWeeklyRound } from './lottery';
-import { checkAdminPassword, setAdminSession, isAdminAuthenticated } from './admin-auth';
+import {
+  checkAdminPassword,
+  setAdminSession,
+  isAdminAuthenticated,
+  loginBlockedMessage,
+  recordFailedLogin,
+  clearFailedLogins,
+} from './admin-auth';
 import { revalidatePath } from 'next/cache';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
-// 1. Enkel innlogging
+// 1. Innlogging (maks 5 feilforsøk per 15 minutter per IP)
 export async function verifyAdminPassword(formData: FormData) {
+  const blocked = await loginBlockedMessage();
+  if (blocked) return { success: false, message: blocked };
+
   if (checkAdminPassword(formData.get('password'))) {
+    await clearFailedLogins();
     await setAdminSession(); // Cookie som varer i 24 timer
     return { success: true };
   }
+  await recordFailedLogin();
   return { success: false, message: 'Feil passord' };
 }
 

@@ -1,5 +1,6 @@
-import { createHmac, timingSafeEqual } from 'crypto';
-import { cookies } from 'next/headers';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
+import { cookies, headers } from 'next/headers';
+import { prisma } from './prisma';
 
 // Admin-innlogging.
 //
@@ -48,4 +49,45 @@ export async function isAdminAuthenticated(): Promise<boolean> {
 
 export async function getAdminTheme() {
   return ((await cookies()).get('admin-theme')?.value ?? 'dark') as 'dark' | 'light';
+}
+
+// --- Begrensning av innloggingsforsøk ---
+// Lagres i databasen, fordi appen på Vercel kjører i flere instanser samtidig.
+const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutter
+const MAX_FAILURES_PER_IP = 5;
+// Tak for alle IP-er samlet, mot gjetting fra mange adresser samtidig
+const MAX_FAILURES_TOTAL = 50;
+
+async function clientIpHash(): Promise<string> {
+  const h = await headers();
+  const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || 'ukjent';
+  return createHash('sha256').update(`vinlotteri-login:${ip}`).digest('hex');
+}
+
+/** Returnerer en feilmelding hvis innlogging er sperret akkurat nå, ellers null. */
+export async function loginBlockedMessage(): Promise<string | null> {
+  const since = new Date(Date.now() - LOGIN_WINDOW_MS);
+  const ipHash = await clientIpHash();
+  const [fromIp, total] = await Promise.all([
+    prisma.adminLoginAttempt.count({ where: { ipHash, createdAt: { gte: since } } }),
+    prisma.adminLoginAttempt.count({ where: { createdAt: { gte: since } } }),
+  ]);
+  if (fromIp >= MAX_FAILURES_PER_IP || total >= MAX_FAILURES_TOTAL) {
+    return 'For mange mislykkede forsøk. Prøv igjen om 15 minutter.';
+  }
+  return null;
+}
+
+export async function recordFailedLogin() {
+  const ipHash = await clientIpHash();
+  await prisma.adminLoginAttempt.create({ data: { ipHash } });
+  // Rydd bort gamle forsøk, så tabellen ikke vokser
+  await prisma.adminLoginAttempt.deleteMany({
+    where: { createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+  });
+}
+
+export async function clearFailedLogins() {
+  const ipHash = await clientIpHash();
+  await prisma.adminLoginAttempt.deleteMany({ where: { ipHash } });
 }
