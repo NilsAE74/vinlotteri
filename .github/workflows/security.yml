@@ -52,6 +52,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # hele historikken, ikke bare siste commit
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
