@@ -14,6 +14,11 @@ updates:
       # Samle små oppdateringer i én PR, så det ikke blir for mye støy
       minor-og-patch:
         update-types: [minor, patch]
+    # Hovedversjoner (f.eks. Prisma 6 → 7) krever kodeendringer og bryter bygget.
+    # Dem tar vi manuelt. Sikkerhetsoppdateringer kommer fortsatt via Dependabot alerts.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
