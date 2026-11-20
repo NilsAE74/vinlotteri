@@ -236,7 +236,7 @@ function Cell({ ticket, state }: { ticket: GridTicket; state: CellState }) {
       </span>
       {sold && (
         <span
-          className={`hidden lg:block font-mono leading-tight truncate w-full px-0.5 text-center text-[9px] 2xl:text-[11px] ${
+          className={`hidden lg:block mt-1 font-serif leading-tight truncate w-full px-0.5 text-center text-[11px] 2xl:text-[13px] ${
             gold ? 'text-[#1a0b0e]/80' : 'wine-text-muted'
           }`}
         >
