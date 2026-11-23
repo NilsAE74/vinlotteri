@@ -68,10 +68,9 @@ async function clientIpHash(): Promise<string> {
 export async function loginBlockedMessage(): Promise<string | null> {
   const since = new Date(Date.now() - LOGIN_WINDOW_MS);
   const ipHash = await clientIpHash();
-  const [fromIp, total] = await Promise.all([
-    prisma.adminLoginAttempt.count({ where: { ipHash, createdAt: { gte: since } } }),
-    prisma.adminLoginAttempt.count({ where: { createdAt: { gte: since } } }),
-  ]);
+  // Etter hverandre for å holde antall databasetilkoblinger nede
+  const fromIp = await prisma.adminLoginAttempt.count({ where: { ipHash, createdAt: { gte: since } } });
+  const total = await prisma.adminLoginAttempt.count({ where: { createdAt: { gte: since } } });
   if (fromIp >= MAX_FAILURES_PER_IP || total >= MAX_FAILURES_TOTAL) {
     return 'For mange mislykkede forsøk. Prøv igjen om 15 minutter.';
   }

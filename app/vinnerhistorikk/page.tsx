@@ -15,10 +15,15 @@ const formatDate = (d: Date) =>
 
 export default async function WinnerHistoryPage() {
   const theme = await getAdminTheme();
-  const [{ stats, leaderboard, numberStats, repeatedNumbers, rounds }, luck] = await Promise.all([
-    getWinnerHistory(),
-    getLuckStats(),
-  ]);
+  // Etter hverandre, ikke samtidig: holder antall databasetilkoblinger nede
+  // (Supabase-pooleren har et lavt tak på samtidige tilkoblinger)
+  const { stats, leaderboard, numberStats, repeatedNumbers, rounds } = await getWinnerHistory();
+  const luck = await getLuckStats();
+
+  // Mest flaks i flaksometeret (delt førsteplass ved lik prosent)
+  const topPct = luck.length ? Math.round(luck[0].luck * 100) : null;
+  const luckiest =
+    topPct === null ? null : { pct: topPct, names: luck.filter(e => Math.round(e.luck * 100) === topPct).map(e => e.name) };
 
   const topNumbers = numberStats.slice(0, TOP_NUMBERS);
   const maxTotal = Math.max(1, ...topNumbers.map(s => s.total));
@@ -48,7 +53,7 @@ export default async function WinnerHistoryPage() {
         </header>
 
         {/* Nøkkeltall */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#722F37]/30 border border-[#722F37]/30 rounded-xl overflow-hidden mb-14">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-[#722F37]/30 border border-[#722F37]/30 rounded-xl overflow-hidden mb-14">
           <Stat value={stats.draws} label="trekninger med vinner" />
           <Stat value={stats.winnerCount} label="ulike vinnere" />
           <Stat
@@ -56,6 +61,13 @@ export default async function WinnerHistoryPage() {
             label={stats.topNames.length ? `flest gevinster – ${stats.topNames.join(' og ')}` : 'flest gevinster'}
           />
           <Stat value={stats.roundsWithWinner} label="runder gjennomført" />
+          {/* Fra flaksometeret. Tar hele bredden på mobil, siden det er det femte feltet */}
+          <div className="col-span-2 md:col-span-1">
+            <Stat
+              value={luckiest ? `${luckiest.pct} %` : '–'}
+              label={luckiest ? `mest Flax – ${luckiest.names.join(' og ')}` : 'mest Flax'}
+            />
+          </div>
         </div>
 
         {stats.draws === 0 ? (
@@ -194,9 +206,9 @@ export default async function WinnerHistoryPage() {
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label }: { value: number | string; label: string }) {
   return (
-    <div className="wine-card-bg p-5">
+    <div className="wine-card-bg p-5 h-full">
       <div className="font-serif text-4xl text-[#D4AF37] leading-none mb-2 tabular-nums">{value}</div>
       <div className="wine-text-muted text-sm leading-snug">{label}</div>
     </div>
