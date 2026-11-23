@@ -86,3 +86,64 @@ export async function getWinnerHistory() {
     rounds,
   };
 }
+
+// --- Flaksometer ---
+// Hvem vinner oftere enn antall lodd skulle tilsi?
+//
+// For hver runde med trekning: forventede gevinster = egne lodd ÷ solgte lodd
+// × antall gevinster som gikk til solgte lodd. Flaks = faktiske gevinster ÷
+// summen av forventede. 1 = som forventet, over 1 = flaks, under 1 = uflaks.
+// Runder uten trekning (f.eks. den som pågår) telles ikke.
+
+export type LuckEntry = {
+  name: string;
+  rounds: number; // Runder med trekning personen har vært med i
+  tickets: number;
+  wins: number;
+  expected: number;
+  luck: number; // Faktiske ÷ forventede gevinster
+};
+
+export const LUCK_MIN_ROUNDS = 3;
+
+export async function getLuckStats(): Promise<LuckEntry[]> {
+  const sold = await prisma.ticket.findMany({
+    where: { isTaken: true, ownerName: { not: null } },
+    select: { roundId: true, ownerName: true, hasWon: true },
+  });
+
+  type RoundData = { sold: number; wins: number; people: Map<string, { tickets: number; wins: number }> };
+  const byRound = new Map<number, RoundData>();
+  for (const t of sold) {
+    const name = t.ownerName!.trim();
+    if (!name) continue;
+    const r = byRound.get(t.roundId) ?? { sold: 0, wins: 0, people: new Map() };
+    const p = r.people.get(name) ?? { tickets: 0, wins: 0 };
+    r.sold++;
+    p.tickets++;
+    if (t.hasWon) {
+      r.wins++;
+      p.wins++;
+    }
+    r.people.set(name, p);
+    byRound.set(t.roundId, r);
+  }
+
+  const byName = new Map<string, Omit<LuckEntry, 'name' | 'luck'>>();
+  for (const r of byRound.values()) {
+    if (r.wins === 0) continue; // Ingen trekning ennå
+    for (const [name, p] of r.people) {
+      const e = byName.get(name) ?? { rounds: 0, tickets: 0, wins: 0, expected: 0 };
+      e.rounds++;
+      e.tickets += p.tickets;
+      e.wins += p.wins;
+      e.expected += (p.tickets / r.sold) * r.wins;
+      byName.set(name, e);
+    }
+  }
+
+  return [...byName.entries()]
+    .filter(([, e]) => e.rounds >= LUCK_MIN_ROUNDS && e.expected > 0)
+    .map(([name, e]) => ({ name, ...e, luck: e.wins / e.expected }))
+    .sort((a, b) => b.luck - a.luck || b.wins - a.wins || a.name.localeCompare(b.name, 'nb'));
+}
