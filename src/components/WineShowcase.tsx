@@ -14,14 +14,31 @@ function splitInfo(info: string) {
 }
 
 // «Ukens viner» på forsiden. Trykk på en vin for å se mer informasjon.
-export default function WineShowcase({ wines, summary }: { wines: WineItem[]; summary?: string | null }) {
+// Før admin har bekreftet vinene, vises de som et forslag.
+export default function WineShowcase({
+  wines,
+  summary,
+  confirmed = true,
+}: {
+  wines: WineItem[];
+  summary?: string | null;
+  confirmed?: boolean;
+}) {
   const [open, setOpen] = useState<WineItem | null>(null);
+  const count = wines.length === 1 ? 'Ukens vin' : `Ukens viner (${wines.length} flasker)`;
 
   return (
     <section className="mb-5">
       <h2 className="text-center text-[#D4AF37] text-xs uppercase tracking-widest mb-2">
-        {wines.length === 1 ? 'Ukens vin' : `Ukens viner (${wines.length} flasker)`}
+        {confirmed ? count : `Forslag til ${count.charAt(0).toLowerCase()}${count.slice(1)}`}
       </h2>
+      {!confirmed && (
+        <p className="text-center mb-3">
+          <span className="inline-block px-2.5 py-0.5 rounded-full border border-[#D4AF37]/50 text-[#D4AF37] text-xs">
+            Forslag – endelige viner bekreftes når de er kjøpt
+          </span>
+        </p>
+      )}
       {/* AI-oppsummering av ukens viner */}
       {summary && (
         <p className="max-w-2xl mx-auto text-center wine-text-muted text-sm italic leading-relaxed mb-3 px-2">

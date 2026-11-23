@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Search, Wine, Plus, Trash2, Check, Sparkles, RefreshCw } from 'lucide-react';
+import { Search, Wine, Plus, Trash2, Check, Sparkles, RefreshCw, BadgeCheck } from 'lucide-react';
 import {
   searchVinmonopolet,
   addWine,
@@ -9,6 +9,7 @@ import {
   deleteWine,
   regenerateRoundSummary,
   updateRoundSummary,
+  setWinesConfirmed,
   type WineSearchResult,
 } from '@/lib/admin-actions';
 import { formatWine } from '@/lib/wine-format';
@@ -25,9 +26,19 @@ const inputClass =
 const buttonClass =
   'px-4 py-2 bg-[#722F37] text-[#D4AF37] rounded-lg flex items-center gap-2 disabled:opacity-50';
 
-export default function WineListEditor({ wines, summary }: { wines: WineItem[]; summary: string | null }) {
+export default function WineListEditor({
+  wines,
+  summary,
+  confirmed,
+}: {
+  wines: WineItem[];
+  summary: string | null;
+  confirmed: boolean;
+}) {
   return (
     <div className="space-y-6">
+      <ConfirmStatus confirmed={confirmed} hasWines={wines.length > 0} />
+
       {wines.length > 0 ? (
         <ol className="space-y-3">
           {wines.map((wine, i) => (
@@ -89,6 +100,63 @@ function WineRow({ wine, index }: { wine: WineItem; index: number }) {
         </button>
       </div>
     </li>
+  );
+}
+
+// Status for ukens viner: forslag eller bekreftet. Før bekreftelse vises
+// vinene som forslag på forsiden.
+function ConfirmStatus({ confirmed, hasWines }: { confirmed: boolean; hasWines: boolean }) {
+  const [error, setError] = useState('');
+  const [isPending, startTransition] = useTransition();
+
+  function set(value: boolean) {
+    startTransition(async () => {
+      const res = await setWinesConfirmed(value);
+      setError(res.success ? '' : res.message ?? 'Noe gikk galt');
+    });
+  }
+
+  return (
+    <div
+      className={`rounded-lg border p-3 flex flex-col sm:flex-row sm:items-center gap-3 ${
+        confirmed ? 'border-green-700 bg-green-900/20' : 'border-[#D4AF37]/60 bg-[#D4AF37]/10'
+      }`}
+    >
+      <div className="flex-1 text-sm">
+        {confirmed ? (
+          <p className="text-green-500 font-semibold flex items-center gap-2">
+            <BadgeCheck className="w-4 h-4" /> Bekreftet – vinene er de riktige
+          </p>
+        ) : (
+          <p className="text-[#D4AF37] font-semibold">Forslag – ikke bekreftet ennå</p>
+        )}
+        <p className="wine-text-subtle text-xs mt-0.5">
+          {confirmed
+            ? 'Legger du til eller fjerner en vin, blir listen et forslag igjen.'
+            : 'Forsiden viser vinene som et forslag til du bekrefter, f.eks. når de er kjøpt.'}
+        </p>
+        {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      </div>
+      {confirmed ? (
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => set(false)}
+          className="text-xs wine-text-subtle hover:text-[#D4AF37] disabled:opacity-50 shrink-0"
+        >
+          Angre bekreftelse
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={isPending || !hasWines}
+          onClick={() => set(true)}
+          className={`${buttonClass} justify-center shrink-0`}
+        >
+          <BadgeCheck className="w-4 h-4" /> {isPending ? 'Bekrefter…' : 'Bekreft ukens viner'}
+        </button>
+      )}
+    </div>
   );
 }
 
