@@ -444,14 +444,37 @@ export async function addWine(info: string, imageUrl: string | null, productCode
       position: (activeRound.wines[0]?.position ?? -1) + 1,
     },
   });
-  await refreshRoundSummary(activeRound.id);
+  await onWinesChanged(activeRound.id);
 
   revalidateWines();
   return { success: true };
 }
 
-// Lager AI-oppsummeringen av rundens viner på nytt (kalles når viner legges
-// til eller fjernes). Bare viner med varenummer har fakta å bygge på.
+// Når viner legges til eller fjernes: listen er igjen bare et forslag til admin
+// bekrefter på nytt, og AI-oppsummeringen lages på nytt.
+async function onWinesChanged(roundId: number) {
+  await prisma.lotteryRound.update({ where: { id: roundId }, data: { winesConfirmed: false } });
+  await refreshRoundSummary(roundId);
+}
+
+// Bekrefter (eller angrer bekreftelsen av) at ukens viner er de riktige.
+// Før bekreftelse vises vinene som forslag på forsiden.
+export async function setWinesConfirmed(confirmed: boolean) {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+  const activeRound = await prisma.lotteryRound.findFirst({
+    where: { isActive: true },
+    include: { _count: { select: { wines: true } } },
+  });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+  if (confirmed && activeRound._count.wines === 0) return { success: false, message: 'Legg til viner først' };
+
+  await prisma.lotteryRound.update({ where: { id: activeRound.id }, data: { winesConfirmed: confirmed } });
+  revalidateWines();
+  return { success: true };
+}
+
+// Lager AI-oppsummeringen av rundens viner på nytt. Bare viner med
+// varenummer har fakta å bygge på.
 // Feiler stille, og returnerer false hvis det ikke ble noen oppsummering.
 async function refreshRoundSummary(roundId: number): Promise<boolean> {
   const wines = await prisma.wine.findMany({
@@ -541,7 +564,7 @@ export async function addSuggestedWines(productCodes: string[]) {
       position: start + i,
     })),
   });
-  await refreshRoundSummary(activeRound.id);
+  await onWinesChanged(activeRound.id);
 
   revalidateWines();
   return { success: true };
@@ -561,7 +584,7 @@ export async function deleteWine(id: number) {
   if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
 
   const deleted = await prisma.wine.delete({ where: { id } });
-  await refreshRoundSummary(deleted.roundId);
+  await onWinesChanged(deleted.roundId);
   revalidateWines();
   return { success: true };
 }

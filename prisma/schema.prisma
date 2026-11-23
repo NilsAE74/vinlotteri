@@ -14,6 +14,7 @@ model LotteryRound {
   isActive  Boolean  @default(true)
   isLocked  Boolean  @default(false)
   aiSummary String?  // Kort oppsummering av ukens viner, laget av AI (Gemini). Kan redigeres i admin
+  winesConfirmed Boolean @default(false) // Admin har bekreftet at ukens viner er de riktige (ellers bare forslag)
   createdAt DateTime @default(now())
   tickets   Ticket[]
   wines     Wine[]
