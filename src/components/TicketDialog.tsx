@@ -63,15 +63,12 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
     // Send arrayet som en JSON-streng
     formData.append('numbers', JSON.stringify(numbers));
 
-    // Skrives navnet likt som i ansattlisten (uansett store/små bokstaver),
-    // bruk skrivemåten fra listen. Da gjenkjennes samme person på tvers av kjøp.
-    const typed = String(formData.get('name') ?? '').trim().replace(/\s+/g, ' ');
-    const canonical = nameSuggestions.find(n => n.toLocaleLowerCase('nb') === typed.toLocaleLowerCase('nb')) ?? typed;
-    formData.set('name', canonical);
-
     const result = await bookTicket(formData);
 
     if (result.success) {
+      // Serveren bestemmer skrivemåten (ansattlisten og kjente alias, f.eks.
+      // initialer). Den huskes, så et gammelt navn på enheten rettes opp.
+      const canonical = result.name ?? String(formData.get('name') ?? '').trim();
       saveName(canonical);
       setName(canonical);
       setConfirmed({ name: canonical, numbers });
