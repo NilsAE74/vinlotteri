@@ -145,6 +145,7 @@ export default async function Home() {
         {activeRound.wines.length > 0 && (
           <WineShowcase
             wines={activeRound.wines.map(({ id, info, imageUrl, productCode }) => ({ id, info, imageUrl, productCode }))}
+            summary={activeRound.aiSummary}
           />
         )}
 

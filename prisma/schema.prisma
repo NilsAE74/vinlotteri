@@ -13,6 +13,7 @@ model LotteryRound {
   name      String?   // F.eks. "Uke 4, 2026"
   isActive  Boolean  @default(true)
   isLocked  Boolean  @default(false)
+  aiSummary String?  // Kort oppsummering av ukens viner, laget av AI (Gemini). Kan redigeres i admin
   createdAt DateTime @default(now())
   tickets   Ticket[]
   wines     Wine[]

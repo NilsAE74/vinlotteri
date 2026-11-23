@@ -81,7 +81,7 @@ export default async function AdminPage() {
               <h3 className="text-[#D4AF37] font-serif text-xl mb-4 flex items-center gap-2">
                 <Wine className="w-5 h-5" /> Ukens viner
               </h3>
-              <WineListEditor wines={activeRound.wines} />
+              <WineListEditor wines={activeRound.wines} summary={activeRound.aiSummary} />
             </div>
           )}
 

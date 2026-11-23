@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Search, Wine, Plus, Trash2, Check } from 'lucide-react';
+import { Search, Wine, Plus, Trash2, Check, Sparkles, RefreshCw } from 'lucide-react';
 import {
   searchVinmonopolet,
   addWine,
   updateWine,
   deleteWine,
+  regenerateRoundSummary,
+  updateRoundSummary,
   type WineSearchResult,
 } from '@/lib/admin-actions';
 import { formatWine } from '@/lib/wine-format';
@@ -15,6 +17,7 @@ type WineItem = {
   id: number;
   info: string;
   imageUrl: string | null;
+  productCode: string | null;
 };
 
 const inputClass =
@@ -22,7 +25,7 @@ const inputClass =
 const buttonClass =
   'px-4 py-2 bg-[#722F37] text-[#D4AF37] rounded-lg flex items-center gap-2 disabled:opacity-50';
 
-export default function WineListEditor({ wines }: { wines: WineItem[] }) {
+export default function WineListEditor({ wines, summary }: { wines: WineItem[]; summary: string | null }) {
   return (
     <div className="space-y-6">
       {wines.length > 0 ? (
@@ -34,6 +37,8 @@ export default function WineListEditor({ wines }: { wines: WineItem[] }) {
       ) : (
         <p className="wine-text-subtle text-sm">Ingen flasker lagt til ennå.</p>
       )}
+
+      <RoundSummary summary={summary} canGenerate={wines.some(w => w.productCode)} />
 
       <AddWine />
     </div>
@@ -84,6 +89,72 @@ function WineRow({ wine, index }: { wine: WineItem; index: number }) {
         </button>
       </div>
     </li>
+  );
+}
+
+// AI-oppsummeringen av ukens viner (vises på forsiden): kan redigeres eller
+// lages på nytt. Lages automatisk når viner legges til eller fjernes.
+function RoundSummary({ summary, canGenerate }: { summary: string | null; canGenerate: boolean }) {
+  const [text, setText] = useState(summary ?? '');
+  const [synced, setSynced] = useState(summary);
+  const [error, setError] = useState('');
+  const [isPending, startTransition] = useTransition();
+
+  // Ny oppsummering fra serveren (etter endringer i vinlisten) erstatter teksten i feltet
+  if (summary !== synced) {
+    setSynced(summary);
+    setText(summary ?? '');
+  }
+  const isDirty = text.trim() !== (summary ?? '');
+
+  if (!canGenerate && !summary) return null; // Ingen viner med fakta å bygge på
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs uppercase tracking-wider text-[#D4AF37] flex items-center gap-1">
+          <Sparkles className="w-3 h-3" /> Ukens oppsummering (AI)
+        </span>
+        <div className="flex gap-3 text-xs">
+          {isDirty && (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => startTransition(async () => {
+                const res = await updateRoundSummary(text);
+                setError(res.success ? '' : res.message ?? 'Noe gikk galt');
+              })}
+              className="text-green-500 hover:text-green-400 disabled:opacity-50"
+            >
+              Lagre
+            </button>
+          )}
+          {canGenerate && (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => startTransition(async () => {
+                const res = await regenerateRoundSummary();
+                setError(res.success ? '' : res.message ?? 'Noe gikk galt');
+              })}
+              className="wine-text-subtle hover:text-[#D4AF37] disabled:opacity-50 flex items-center gap-1"
+            >
+              <RefreshCw className={`w-3 h-3 ${isPending ? 'animate-spin' : ''}`} />
+              {summary ? 'Lag ny' : 'Lag oppsummering'}
+            </button>
+          )}
+        </div>
+      </div>
+      <textarea
+        value={text}
+        onChange={e => setText(e.target.value)}
+        rows={4}
+        placeholder="Ingen oppsummering ennå"
+        className={`w-full text-sm italic ${inputClass}`}
+      />
+      <p className="text-xs wine-text-subtle">Lages på nytt automatisk når du legger til eller fjerner viner.</p>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
   );
 }
 

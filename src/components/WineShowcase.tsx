@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Wine as WineIcon, ChevronRight } from 'lucide-react';
+import { Wine as WineIcon, ChevronRight, Sparkles } from 'lucide-react';
 import WineDialog from './WineDialog';
 
 type WineItem = { id: number; info: string; imageUrl: string | null; productCode: string | null };
@@ -14,7 +14,7 @@ function splitInfo(info: string) {
 }
 
 // «Ukens viner» på forsiden. Trykk på en vin for å se mer informasjon.
-export default function WineShowcase({ wines }: { wines: WineItem[] }) {
+export default function WineShowcase({ wines, summary }: { wines: WineItem[]; summary?: string | null }) {
   const [open, setOpen] = useState<WineItem | null>(null);
 
   return (
@@ -22,6 +22,15 @@ export default function WineShowcase({ wines }: { wines: WineItem[] }) {
       <h2 className="text-center text-[#D4AF37] text-xs uppercase tracking-widest mb-2">
         {wines.length === 1 ? 'Ukens vin' : `Ukens viner (${wines.length} flasker)`}
       </h2>
+      {/* AI-oppsummering av ukens viner */}
+      {summary && (
+        <p className="max-w-2xl mx-auto text-center wine-text-muted text-sm italic leading-relaxed mb-3 px-2">
+          {summary}
+          <span className="not-italic wine-text-subtle text-xs whitespace-nowrap">
+            {' '}<Sparkles aria-hidden className="inline w-3 h-3 -mt-0.5" /> AI
+          </span>
+        </p>
+      )}
       <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-center gap-2 sm:gap-3 max-w-md sm:max-w-none mx-auto">
         {wines.map(wine => {
           const { name, details } = splitInfo(wine.info);
