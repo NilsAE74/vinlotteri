@@ -3,8 +3,9 @@ import AdminLogin from '@/src/components/AdminLogin';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import { getAdminStats, adminStartNewRound, getAdminPageData, toggleRoundLock } from '@/lib/admin-actions';
 import { isAdminAuthenticated, getAdminTheme } from '@/lib/admin-auth';
-import { Trophy, RefreshCw, BarChart3, Lock, Unlock, Wine, Ticket, MonitorPlay } from 'lucide-react';
+import { Trophy, RefreshCw, BarChart3, Lock, Unlock, Wine, Ticket, MonitorPlay, ShoppingCart } from 'lucide-react';
 import WineListEditor from '@/src/components/WineListEditor';
+import WineShoppingPlanner from '@/src/components/WineShoppingPlanner';
 import TicketBookingsEditor from '@/src/components/TicketBookingsEditor';
 import ResetDrawButton from '@/src/components/ResetDrawButton';
 import TestTicketsButtons from '@/src/components/TestTicketsButtons';
@@ -63,6 +64,15 @@ export default async function AdminPage() {
               <p className="wine-text-subtle">Start en ny runde for å trekke.</p>
             )}
             <p className="text-xs wine-text-subtle mt-3">Åpnes i ny fane – egnet for storskjerm/projektor.</p>
+          </div>
+
+          {/* Handleliste: forslag til hva som skal kjøpes på Vinmonopolet */}
+          <div className="wine-card-bg border border-[#722F37]/50 rounded-xl p-6">
+            <h3 className="text-[#D4AF37] font-serif text-xl mb-1 flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" /> Handleliste
+            </h3>
+            <p className="text-sm wine-text-subtle mb-4">Få forslag til flasker som passer i budsjettet, med varenummer til butikken.</p>
+            <WineShoppingPlanner hasActiveRound={!!activeRound} />
           </div>
 
           {/* Vininfo */}
