@@ -12,6 +12,9 @@ import {
 } from './admin-auth';
 import { revalidatePath } from 'next/cache';
 import { formatWine, type WineSearchResult } from './wine-format';
+import { fetchWineDetails } from './wine-details-fetch';
+import { generateWeeklySummary } from './ai-comment';
+import type { WineDetails } from './wine-details-map';
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -441,7 +444,56 @@ export async function addWine(info: string, imageUrl: string | null, productCode
       position: (activeRound.wines[0]?.position ?? -1) + 1,
     },
   });
+  await refreshRoundSummary(activeRound.id);
 
+  revalidateWines();
+  return { success: true };
+}
+
+// Lager AI-oppsummeringen av rundens viner på nytt (kalles når viner legges
+// til eller fjernes). Bare viner med varenummer har fakta å bygge på.
+// Feiler stille, og returnerer false hvis det ikke ble noen oppsummering.
+async function refreshRoundSummary(roundId: number): Promise<boolean> {
+  const wines = await prisma.wine.findMany({
+    where: { roundId, productCode: { not: null } },
+    orderBy: { position: 'asc' },
+    select: { productCode: true },
+  });
+  if (wines.length === 0) {
+    await prisma.lotteryRound.update({ where: { id: roundId }, data: { aiSummary: null } });
+    return false;
+  }
+
+  const details = (await Promise.all(wines.map(w => fetchWineDetails(w.productCode!)))).filter(
+    (d): d is WineDetails => d !== null
+  );
+  const summary = await generateWeeklySummary(details);
+  if (!summary) return false;
+
+  await prisma.lotteryRound.update({ where: { id: roundId }, data: { aiSummary: summary } });
+  return true;
+}
+
+export async function regenerateRoundSummary() {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+  const activeRound = await prisma.lotteryRound.findFirst({ where: { isActive: true } });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+
+  const ok = await refreshRoundSummary(activeRound.id);
+  revalidateWines();
+  return ok
+    ? { success: true }
+    : { success: false, message: 'Fikk ikke laget oppsummering. Prøv igjen om litt.' };
+}
+
+// Tom tekst fjerner oppsummeringen
+export async function updateRoundSummary(summary: string) {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+  const activeRound = await prisma.lotteryRound.findFirst({ where: { isActive: true } });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+
+  const text = summary.trim().slice(0, 2000);
+  await prisma.lotteryRound.update({ where: { id: activeRound.id }, data: { aiSummary: text || null } });
   revalidateWines();
   return { success: true };
 }
@@ -489,6 +541,7 @@ export async function addSuggestedWines(productCodes: string[]) {
       position: start + i,
     })),
   });
+  await refreshRoundSummary(activeRound.id);
 
   revalidateWines();
   return { success: true };
@@ -507,7 +560,8 @@ export async function updateWine(id: number, info: string) {
 export async function deleteWine(id: number) {
   if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
 
-  await prisma.wine.delete({ where: { id } });
+  const deleted = await prisma.wine.delete({ where: { id } });
+  await refreshRoundSummary(deleted.roundId);
   revalidateWines();
   return { success: true };
 }
