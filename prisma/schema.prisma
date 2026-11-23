@@ -62,6 +62,15 @@ model Kakeliste {
   aar        Int      @default(dbgenerated("(EXTRACT(year FROM now()))::smallint")) @db.SmallInt
 }
 
+// Andre skrivemåter for samme person, f.eks. initialer eller fullt navn
+// («ON» → «Ola N»). Brukes når lodd kjøpes, så samme person alltid får
+// samme navn. alias lagres med små bokstaver; navn bør stå som i Ansatte.
+// Ligger i databasen (ikke i koden) fordi repoet er offentlig.
+model NavneAlias {
+  alias String @id
+  navn  String
+}
+
 // Mislykkede admin-innlogginger, brukes til å begrense antall forsøk.
 // ipHash er en SHA-256 av IP-adressen, ikke selve adressen.
 model AdminLoginAttempt {

@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { canonicalName } from './names';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
@@ -47,9 +48,13 @@ export async function bookTicket(formData: FormData) {
     return { success: false, message: parsed.error.issues[0]?.message ?? "Ugyldig data." };
   }
 
-  const { numbers, name } = parsed.data;
+  const { numbers } = parsed.data;
 
   try {
+    // Samme person skal alltid få samme navn (alias, ansattlisten, mellomrom)
+    const name = await canonicalName(prisma, parsed.data.name);
+
+
     const count = await prisma.$transaction(async tx => {
       // 2. Finn aktiv runde
       const activeRound = await tx.lotteryRound.findFirst({ where: { isActive: true } });
@@ -71,7 +76,8 @@ export async function bookTicket(formData: FormData) {
     });
 
     revalidatePath('/');
-    return { success: true, message: `${count} lodd registrert på ${name}!` };
+    // name sendes tilbake, så nettleseren husker riktig skrivemåte til neste kjøp
+    return { success: true, message: `${count} lodd registrert på ${name}!`, name };
 
   } catch (error) {
     if (error instanceof BookingError) {
