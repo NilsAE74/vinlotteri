@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { ArrowLeft, Trophy, BarChart3, ScrollText } from 'lucide-react';
+import { ArrowLeft, Trophy, BarChart3, ScrollText, Gauge } from 'lucide-react';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import { getAdminTheme } from '@/lib/admin-auth';
-import { getWinnerHistory } from '@/lib/history';
+import { getWinnerHistory, getLuckStats, LUCK_MIN_ROUNDS, type LuckEntry } from '@/lib/history';
 
 export const metadata: Metadata = { title: 'Vinnerhistorikk – Vinlotteri' };
 export const dynamic = 'force-dynamic'; // Alltid ferske tall fra databasen
@@ -15,7 +15,10 @@ const formatDate = (d: Date) =>
 
 export default async function WinnerHistoryPage() {
   const theme = await getAdminTheme();
-  const { stats, leaderboard, numberStats, repeatedNumbers, rounds } = await getWinnerHistory();
+  const [{ stats, leaderboard, numberStats, repeatedNumbers, rounds }, luck] = await Promise.all([
+    getWinnerHistory(),
+    getLuckStats(),
+  ]);
 
   const topNumbers = numberStats.slice(0, TOP_NUMBERS);
   const maxTotal = Math.max(1, ...topNumbers.map(s => s.total));
@@ -87,6 +90,33 @@ export default async function WinnerHistoryPage() {
                 ))}
               </ol>
             </Section>
+
+            {/* Flaksometer */}
+            {luck.length > 0 && (
+              <Section icon={<Gauge className="w-5 h-5" />} title="Flaksometer" note={`minst ${LUCK_MIN_ROUNDS} runder`}>
+                <p className="wine-text-muted text-sm mb-5 max-w-2xl">
+                  Hvem vinner oftere enn antall lodd skulle tilsi? 100 % betyr akkurat så mange gevinster som
+                  forventet ut fra hvor mange lodd du har kjøpt. Over 100 % er flaks, under er uflaks.
+                </p>
+                <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] sm:grid-cols-[11rem_minmax(0,1fr)_3.5rem] gap-x-4 px-4 text-xs wine-text-subtle font-mono mb-2">
+                  <span className="hidden sm:block" />
+                  <div className="flex justify-between">
+                    <span>Uflaks</span>
+                    <span>Som forventet</span>
+                    <span>Flaks</span>
+                  </div>
+                  <span />
+                </div>
+                <ol className="space-y-2">
+                  {luck.map((e, i) => (
+                    <LuckRow key={e.name} entry={e} top={i === 0} />
+                  ))}
+                </ol>
+                <p className="wine-text-subtle text-xs font-mono mt-4">
+                  Forventet per runde = dine lodd ÷ solgte lodd × antall gevinster. Bare runder med trekning telles.
+                </p>
+              </Section>
+            )}
 
             {/* Mest trukne tall */}
             <Section
@@ -182,6 +212,49 @@ function Section({ icon, title, note, children }: { icon: React.ReactNode; title
       </div>
       {children}
     </section>
+  );
+}
+
+// Én rad i flaksometeret: navn, måler og flaksprosent.
+// Måleren går fra 0 % (venstre) via 100 % (midten) til 200 % eller mer (høyre),
+// og fyller fra midten mot den siden personen har flaks eller uflaks.
+function LuckRow({ entry: e, top }: { entry: LuckEntry; top: boolean }) {
+  const pct = Math.round(e.luck * 100);
+  const pos = Math.min(e.luck, 2) / 2; // 0–1, midten = som forventet
+  const lucky = e.luck >= 1;
+  const ticketsPerWin = e.wins > 0 ? (e.tickets / e.wins).toFixed(1).replace('.', ',') : null;
+  const expected = e.expected.toFixed(1).replace('.', ',');
+  const winsText = `${e.wins} ${e.wins === 1 ? 'gevinst' : 'gevinster'}`;
+
+  return (
+    <li
+      className={`grid grid-cols-[minmax(0,1fr)_3.5rem] sm:grid-cols-[11rem_minmax(0,1fr)_3.5rem] items-center gap-x-4 gap-y-1.5 px-4 py-3 rounded-lg border wine-card-bg ${
+        top ? 'border-[#D4AF37]' : 'border-[#722F37]/30'
+      }`}
+    >
+      <div className="min-w-0 col-span-2 sm:col-span-1">
+        <div className="wine-text font-semibold truncate">{e.name}</div>
+        <div className="wine-text-subtle font-mono text-xs">
+          <span className="whitespace-nowrap">{winsText} · {e.tickets} lodd</span>
+          {ticketsPerWin && <span className="hidden sm:block whitespace-nowrap">1 gevinst per {ticketsPerWin} lodd</span>}
+        </div>
+      </div>
+      <div
+        className="relative h-3 rounded-full bg-[#722F37]/15"
+        role="img"
+        aria-label={`${e.name}: ${pct} % flaks, ${winsText} mot ${expected} forventet`}
+        title={`${winsText}, forventet ${expected}`}
+      >
+        <div
+          className={`absolute inset-y-0 ${lucky ? 'bg-[#D4AF37] rounded-r-full' : 'bg-[#722F37] rounded-l-full'}`}
+          style={lucky ? { left: '50%', width: `${(pos - 0.5) * 100}%` } : { left: `${pos * 100}%`, width: `${(0.5 - pos) * 100}%` }}
+        />
+        <div className="absolute inset-y-[-3px] left-1/2 w-px bg-current wine-text-subtle opacity-60" />
+      </div>
+      <span className={`font-mono text-right tabular-nums ${lucky ? 'text-[#D4AF37]' : 'wine-text-muted'}`}>
+        <b className="text-lg">{pct}</b>%
+      </span>
+    </li>
   );
 }
 
