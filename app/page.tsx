@@ -9,6 +9,8 @@ import { revalidatePath } from 'next/cache';
 import { Play } from 'lucide-react'; // Ikon for start-knapp
 import WineLogo from '@/src/components/WineLogo';
 import WineShowcase from '@/src/components/WineShowcase';
+import FunFactBox from '@/src/components/FunFactBox';
+import { pickFunFact } from '@/lib/wine-fun-facts';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import CountdownTimer from '@/src/components/CountdownTimer';
 import TicketProgressBar from '@/src/components/TicketProgressBar';
@@ -110,6 +112,8 @@ export default async function Home() {
   const ansattNavn = [...new Set(ansatte.map(a => a.Navn!.trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'nb'));
 
+  const funFact = pickFunFact();
+
   return (
     <main className="min-h-screen wine-page-bg overflow-x-hidden selection:bg-[#D4AF37] selection:text-black">
       {/* Background Ambience – only visible in dark mode */}
@@ -149,6 +153,9 @@ export default async function Home() {
             confirmed={activeRound.winesConfirmed}
           />
         )}
+
+        {/* Fun fact om vin – ny ved hver innlasting (siden er dynamisk pga. cookies) */}
+        <FunFactBox fact={funFact} />
 
         {/* Progress bar */}
         <div className="mb-4">
