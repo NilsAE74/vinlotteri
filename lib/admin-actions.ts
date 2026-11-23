@@ -11,6 +11,18 @@ import {
   clearFailedLogins,
 } from './admin-auth';
 import { revalidatePath } from 'next/cache';
+import { formatWine, type WineSearchResult } from './wine-format';
+import {
+  CATEGORIES,
+  CATEGORY_LABELS,
+  pickCombination,
+  priceWindow,
+  totalBottles,
+  type Candidate,
+  type Category,
+  type Counts,
+  type Pools,
+} from './wine-suggestions';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
@@ -213,30 +225,37 @@ export async function toggleRoundLock() {
 
 const isAdmin = isAdminAuthenticated;
 
-export type WineSearchResult = {
-  code: string;
-  name: string;
-  price: string | null;
-  country: string | null;
-  district: string | null;
-  volume: string | null;
-  alcohol: string | null;
-  imageUrl: string | null;
-  url: string | null;
-};
+export type { WineSearchResult } from './wine-format';
 
 // Utsnitt av feltene vi bruker fra Vinmonopolets søkesvar
 type VmpProduct = {
   code: string;
   name: string;
-  price?: { formattedValue?: string };
+  price?: { formattedValue?: string; value?: number };
   main_country?: { name?: string };
   district?: { name?: string };
   volume?: { formattedValue?: string };
   alcohol?: { formattedValue?: string };
   images?: { format: string; url: string }[];
   url?: string;
+  product_selection?: string;
 };
+
+const VMP_HEADERS = { 'User-Agent': 'Mozilla/5.0' };
+
+function toSearchResult(p: VmpProduct): WineSearchResult {
+  return {
+    code: p.code,
+    name: p.name,
+    price: p.price?.formattedValue ?? null,
+    country: p.main_country?.name ?? null,
+    district: p.district?.name ?? null,
+    volume: p.volume?.formattedValue ?? null,
+    alcohol: p.alcohol?.formattedValue ?? null,
+    imageUrl: p.images?.find(i => i.format === 'product')?.url ?? null,
+    url: p.url ? `https://www.vinmonopolet.no${p.url}` : null,
+  };
+}
 
 // Søker i Vinmonopolets nettbutikk (uoffisielt API, samme som vinmonopolet.no bruker)
 export async function searchVinmonopolet(query: string): Promise<WineSearchResult[]> {
@@ -247,26 +266,152 @@ export async function searchVinmonopolet(query: string): Promise<WineSearchResul
   try {
     const res = await fetch(
       `https://www.vinmonopolet.no/vmpws/v2/vmp/products/search?q=${encodeURIComponent(q)}&pageSize=10&fields=FULL`,
-      { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store' }
+      { headers: VMP_HEADERS, cache: 'no-store' }
     );
     if (!res.ok) return [];
     const data: { products?: VmpProduct[] } = await res.json();
 
-    return (data.products ?? []).map(p => ({
-      code: p.code,
-      name: p.name,
-      price: p.price?.formattedValue ?? null,
-      country: p.main_country?.name ?? null,
-      district: p.district?.name ?? null,
-      volume: p.volume?.formattedValue ?? null,
-      alcohol: p.alcohol?.formattedValue ?? null,
-      imageUrl: p.images?.find(i => i.format === 'product')?.url ?? null,
-      url: p.url ? `https://www.vinmonopolet.no${p.url}` : null,
-    }));
+    return (data.products ?? []).map(toSearchResult);
   } catch (error) {
     console.error('Vinmonopolet search error:', error);
     return [];
   }
+}
+
+// --- Handleliste: forslag til flasker innenfor et budsjett ---
+
+export type VmpStore = { id: string; name: string };
+
+// Alle Vinmonopolets butikker, sortert på navn (mellomlagres i et døgn)
+export async function getVinmonopoletStores(): Promise<VmpStore[]> {
+  if (!(await isAdmin())) return [];
+  try {
+    const res = await fetch('https://www.vinmonopolet.no/vmpws/v2/vmp/stores?pageSize=1000&fields=BASIC', {
+      headers: VMP_HEADERS,
+      next: { revalidate: 60 * 60 * 24 },
+    });
+    if (!res.ok) return [];
+    const data: { stores?: { name?: string; displayName?: string }[] } = await res.json();
+    return (data.stores ?? [])
+      .filter((s): s is { name: string; displayName: string } => !!s.name && !!s.displayName)
+      .map(s => ({ id: s.name, name: s.displayName }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'nb'));
+  } catch (error) {
+    console.error('Vinmonopolet stores error:', error);
+    return [];
+  }
+}
+
+// Utvalgene vi henter fra. «AndreUtvalg» er filteret som dekker basisutvalget
+// (pluss litt testutvalg, som sorteres bort under). Flere verdier i samme filter
+// gir OG i søket, så hvert utvalg hentes for seg.
+const SELECTION_FILTERS = { basis: 'AndreUtvalg', special: 'Spesialutvalg' };
+const ALLOWED_SELECTIONS = new Set(['Basisutvalget', 'Spesialutvalg']);
+
+// Henter opptil to sider (48 viner) for ett søk
+async function fetchCandidatePages(query: string, category: Category): Promise<Candidate[]> {
+  const out: Candidate[] = [];
+  for (let page = 0; page < 2; page++) {
+    const res = await fetch(
+      `https://www.vinmonopolet.no/vmpws/v2/vmp/products/search?pageSize=24&currentPage=${page}&fields=FULL&q=${encodeURIComponent(query)}`,
+      { headers: VMP_HEADERS, next: { revalidate: 60 * 15 } }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data: { products?: VmpProduct[]; pagination?: { totalPages?: number } } = await res.json();
+    for (const p of data.products ?? []) {
+      if (typeof p.price?.value !== 'number' || !/^\d+$/.test(p.code)) continue;
+      out.push({ ...toSearchResult(p), category, priceValue: p.price.value, selection: p.product_selection ?? null });
+    }
+    if ((data.pagination?.totalPages ?? 0) <= page + 1) break;
+  }
+  return out;
+}
+
+async function fetchCandidates(
+  category: Category,
+  window: { min: number; max: number },
+  storeId: string | null,
+  includeSpecial: boolean,
+): Promise<Candidate[]> {
+  // Kun vanlige 75 cl glassflasker (ikke kartong, bag-in-box eller magnum)
+  let base = `:relevance:mainCategory:${category}:priceValue:[${window.min} TO ${window.max}]:volumeRanges:75 - 99 cl:Emballasjetype:Glass`;
+  if (storeId) base += `:availableInStores:${storeId}`;
+
+  // Basisutvalget alltid, spesialutvalget bare hvis valgt
+  const filters = includeSpecial ? [SELECTION_FILTERS.basis, SELECTION_FILTERS.special] : [SELECTION_FILTERS.basis];
+  const queries = filters.map(s => `${base}:StockAvailability:${s}`);
+  const results = (await Promise.all(queries.map(q => fetchCandidatePages(q, category)))).flat();
+
+  const unique = new Map<string, Candidate>();
+  for (const w of results) {
+    if (w.selection && ALLOWED_SELECTIONS.has(w.selection)) unique.set(w.code, w);
+  }
+  return [...unique.values()];
+}
+
+export type SuggestionInput = {
+  budget: number;
+  counts: Counts;
+  storeId: string | null;
+  includeSpecial: boolean; // Ta med spesialutvalget i tillegg til basisutvalget
+  minPrice: number;
+};
+
+export type SuggestionResult =
+  | { success: true; wines: Candidate[]; pools: Pools; excludedCount: number }
+  | { success: false; message: string };
+
+export async function suggestWines(input: SuggestionInput): Promise<SuggestionResult> {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+
+  const budget = Math.floor(Number(input.budget));
+  const minPrice = Math.max(0, Math.floor(Number(input.minPrice) || 0));
+  const counts: Counts = {};
+  for (const c of CATEGORIES) {
+    const n = Math.floor(Number(input.counts?.[c] ?? 0));
+    if (n > 0) counts[c] = Math.min(n, 6);
+  }
+  const bottles = totalBottles(counts);
+  const storeId = input.storeId && /^\d+$/.test(input.storeId) ? input.storeId : null;
+
+  if (!Number.isFinite(budget) || budget < 100 || budget > 50000) return { success: false, message: 'Ugyldig budsjett' };
+  if (bottles < 1 || bottles > 10) return { success: false, message: 'Velg mellom 1 og 10 flasker' };
+
+  const window = priceWindow(budget, bottles, minPrice);
+  if (!window) return { success: false, message: `Budsjettet holder ikke til ${bottles} flasker à minst ${minPrice} kr` };
+
+  // Viner som er loddet ut før (eller allerede ligger i denne runden) foreslås ikke
+  const used = await prisma.wine.findMany({ where: { productCode: { not: null } }, select: { productCode: true } });
+  const usedCodes = new Set(used.map(w => w.productCode));
+
+  const pools: Pools = {};
+  let excludedCount = 0;
+  try {
+    for (const c of CATEGORIES) {
+      if (!counts[c]) continue;
+      const all = await fetchCandidates(c, window, storeId, !!input.includeSpecial);
+      pools[c] = all.filter(w => !usedCodes.has(w.code));
+      excludedCount += all.length - pools[c]!.length;
+    }
+  } catch (error) {
+    console.error('Vinmonopolet suggestion error:', error);
+    return { success: false, message: 'Fikk ikke kontakt med Vinmonopolet. Prøv igjen litt senere.' };
+  }
+
+  for (const c of CATEGORIES) {
+    const need = counts[c] ?? 0;
+    const have = pools[c]?.length ?? 0;
+    if (need > have) {
+      return {
+        success: false,
+        message: `Fant bare ${have} ${CATEGORY_LABELS[c].toLowerCase()} mellom ${window.min} og ${window.max} kr. Prøv uten butikkfilter, med spesialutvalget eller med lavere minstepris.`,
+      };
+    }
+  }
+
+  const wines = pickCombination(pools, counts, budget);
+  if (!wines) return { success: false, message: 'Fant ingen kombinasjon innenfor budsjettet' };
+  return { success: true, wines, pools, excludedCount };
 }
 
 function revalidateWines() {
@@ -295,6 +440,54 @@ export async function addWine(info: string, imageUrl: string | null, productCode
       productCode: productCode && /^\d+$/.test(productCode) ? productCode : null,
       position: (activeRound.wines[0]?.position ?? -1) + 1,
     },
+  });
+
+  revalidateWines();
+  return { success: true };
+}
+
+// Legger handlelisten til som ukens premier. Slår opp vinene på nytt ut fra
+// varenummer, så klienten bare sender varenumre (ikke fritekst).
+export async function addSuggestedWines(productCodes: string[]) {
+  if (!(await isAdmin())) return { success: false, message: 'Ikke innlogget' };
+  const codes = [...new Set(productCodes)].filter(c => /^\d+$/.test(c)).slice(0, 10);
+  if (codes.length === 0) return { success: false, message: 'Ingen flasker valgt' };
+
+  const activeRound = await prisma.lotteryRound.findFirst({
+    where: { isActive: true },
+    include: { wines: { orderBy: { position: 'desc' }, take: 1 } },
+  });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+
+  let wines: WineSearchResult[];
+  try {
+    wines = await Promise.all(
+      codes.map(async code => {
+        const res = await fetch(`https://www.vinmonopolet.no/vmpws/v3/vmp/products/${code}?fields=FULL`, {
+          headers: VMP_HEADERS,
+          cache: 'no-store',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status} for ${code}`);
+        const p: VmpProduct & { content?: { traits?: { name?: string; formattedValue?: string }[] } } = await res.json();
+        // I v3 ligger alkohol under content.traits i stedet for i eget felt
+        const alcohol = p.alcohol ?? { formattedValue: p.content?.traits?.find(t => t.name === 'Alkohol')?.formattedValue };
+        return toSearchResult({ ...p, alcohol, code });
+      })
+    );
+  } catch (error) {
+    console.error('Vinmonopolet product error:', error);
+    return { success: false, message: 'Fikk ikke hentet vinene fra Vinmonopolet' };
+  }
+
+  const start = (activeRound.wines[0]?.position ?? -1) + 1;
+  await prisma.wine.createMany({
+    data: wines.map((w, i) => ({
+      roundId: activeRound.id,
+      info: formatWine(w),
+      imageUrl: w.imageUrl,
+      productCode: w.code,
+      position: start + i,
+    })),
   });
 
   revalidateWines();

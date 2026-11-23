@@ -9,19 +9,13 @@ import {
   deleteWine,
   type WineSearchResult,
 } from '@/lib/admin-actions';
+import { formatWine } from '@/lib/wine-format';
 
 type WineItem = {
   id: number;
   info: string;
   imageUrl: string | null;
 };
-
-// Lager en lesbar tekst av et søketreff, f.eks. "Barolo 2019 – Italia, Piemonte – 75 cl · 14% · Kr 699,90"
-function formatWine(w: WineSearchResult) {
-  const origin = [w.country, w.district].filter(Boolean).join(', ');
-  const details = [w.volume, w.alcohol, w.price].filter(Boolean).join(' · ');
-  return [w.name, origin, details].filter(Boolean).join(' – ');
-}
 
 const inputClass =
   'wine-card-bg wine-text border border-[#722F37]/50 rounded-lg px-3 py-2 outline-none focus:border-[#D4AF37]';
