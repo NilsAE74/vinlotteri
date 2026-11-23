@@ -21,6 +21,16 @@ function models() {
   return [...new Set(list.filter((m): m is string => !!m && /^[\w.-]+$/.test(m)))];
 }
 
+// Fakta som ikke sendes til modellen:
+// - Pris: oppsummeringen skal ikke handle om pris.
+// - Produsent som er et selskap (AS/ASA): hos Vinmonopolet står ofte importøren
+//   her (f.eks. «Oslo Wine Agency As»), ikke den egentlige produsenten.
+function isUsefulFact(f: { label: string; value: string }) {
+  if (f.label === 'Pris') return false;
+  if (f.label === 'Produsent' && /\bA\/?SA?\.?$/i.test(f.value.trim())) return false;
+  return true;
+}
+
 type GeminiResponse = {
   candidates?: { content?: { parts?: { text?: string }[] } }[];
   error?: { message?: string };
@@ -36,7 +46,7 @@ export async function generateWeeklySummary(wines: WineDetails[]): Promise<strin
 
   const facts = wines.map(d => ({
     navn: d.name,
-    fakta: d.facts,
+    fakta: d.facts.filter(isUsefulFact),
     egenskaper: d.characteristics.map(c => `${c.label}: ${c.value} av ${c.max}`),
     notater: d.notes,
     passerTil: d.pairings,
