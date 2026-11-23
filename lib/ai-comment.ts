@@ -2,16 +2,26 @@
 // Vanlig servermodul: brukes bare fra server actions, så API-nøkkelen aldri
 // når nettleseren.
 //
-// Oppsummeringen bygger kun på faktaene fra Vinmonopolet, så modellen ikke skal
-// finne på årganger, karakterer eller lignende.
+// Omtalen av vinene bygger kun på faktaene fra Vinmonopolet, så modellen ikke
+// skal finne på årganger, karakterer eller lignende. Til slutt kommer én
+// generell fun fact om vin, trukket fra en kontrollert liste (wine-fun-facts.ts).
+//
+// Trekningen er kl. 14.15 annenhver fredag, og teksten leses i dagene før.
+// Den skal passe til fredagsettermiddag rett før helgen (men ikke antyde
+// drikking på jobben).
 
 import type { WineDetails } from './wine-details-map';
+import { pickFunFact } from './wine-fun-facts';
 
 const SYSTEM_PROMPT =
   'Du skriver en kort oppsummering av ukens viner til et vinlotteri på jobben, på norsk bokmål. ' +
-  'Skriv 3–4 setninger, maks 80 ord, som løpende tekst. Tonen er seriøs og kunnskapsrik, men med et lett glimt i øyet. ' +
+  'Trekningen skjer fredag kl. 14.15, på tampen av arbeidsuken med helgen rett rundt hjørnet. ' +
+  'Teksten leses i dagene før trekningen, så skriv fremover mot den – ikke som om trekningen pågår nå. ' +
+  'Knytt gjerne vinene til fredagskvelden eller helgens måltider, men ikke antyd at vinen skal drikkes på jobben. ' +
+  'Skriv 4–5 setninger, maks 100 ord, som løpende tekst. Tonen er seriøs og kunnskapsrik, men med et lett glimt i øyet. ' +
   'Gi et inntrykk av helheten: hvor vinene kommer fra, stil og hva de passer til, og nevn gjerne vinene ved navn. ' +
-  'Bruk BARE faktaene du får; ikke finn på årganger, karakterer, priser eller historier. ' +
+  'Bruk BARE faktaene du får; ikke finn på årganger, karakterer, priser, historier eller andre fakta. ' +
+  'Avslutt med fun facten du får, med egne ord i én setning, uten å legge til noe. ' +
   'Ingen emojier, ingen overskrift, ingen punktlister, ingen anførselstegn.';
 
 // Gratisnivået er tidvis overbelastet (503), så vi prøver flere modeller.
@@ -51,6 +61,7 @@ export async function generateWeeklySummary(wines: WineDetails[]): Promise<strin
     notater: d.notes,
     passerTil: d.pairings,
   }));
+  const prompt = `Ukens viner:\n${JSON.stringify(facts)}\n\nFun fact om vin: ${pickFunFact()}`;
 
   for (const model of models()) {
     try {
@@ -59,7 +70,7 @@ export async function generateWeeklySummary(wines: WineDetails[]): Promise<strin
         headers: { 'x-goog-api-key': key, 'content-type': 'application/json' },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [{ role: 'user', parts: [{ text: `Ukens viner:\n${JSON.stringify(facts)}` }] }],
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
         }),
         signal: AbortSignal.timeout(20_000),
         cache: 'no-store',
