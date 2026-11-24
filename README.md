@@ -104,7 +104,7 @@ npm run start    # Production server
 npm run lint     # ESLint
 ```
 
-There is no automated test suite.
+There is no automated test suite. CI runs lint and `tsc --noEmit`.
 
 ## Database
 
@@ -127,7 +127,7 @@ There are no migration files. Schema changes are applied with `npx prisma db pus
 - Admin session cookie is an HMAC derived from `ADMIN_PASSWORD` (24 hours)
 - Login is rate limited: 5 failed attempts per IP and 50 in total per 15 minutes
 - Security headers on all routes (no framing, HSTS, no MIME sniffing, strict referrer policy)
-- GitHub Actions runs `npm audit` on push, on pull requests and every Monday. Dependabot opens weekly dependency updates.
+- GitHub Actions runs `npm audit`, lint + type check (`tsc --noEmit`) and a secret scan (gitleaks) on push and pull requests to `master`, and every Monday. Dependabot opens weekly dependency updates.
 
 ## Deployment
 
