@@ -83,7 +83,8 @@ body {
 .wine-card-interactive { transition: border-color .15s, background-color .15s; }
 .wine-card-interactive:hover { border-color: var(--wine-accent); }
 .wine-card-interactive:hover .wine-chevron { color: var(--wine-accent); }
-.perf-dot { background-color: var(--wine-border-strong); }
+.perf-line { background-color: var(--wine-border-strong); }
+.perf-hole { background-color: var(--wine-bg); }
 .wine-link { color: var(--wine-text-muted); transition: color .15s; }
 .wine-link:hover { color: var(--wine-accent); }
 /* --- Trekningsanimasjoner --- */
