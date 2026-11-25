@@ -142,7 +142,7 @@ export default async function Home() {
             <FunFactBox initialIndex={funFactIndex} />
             {/* Ukens quiz: topp 5 så langt, eller en invitasjon før noen har svart */}
             <aside aria-labelledby="quiz-tittel" className="wine-card-alpha border border-dashed wine-border-strong rounded-lg px-4 pt-3.5 pb-2.5 flex flex-col gap-2">
-              <h2 id="quiz-tittel" className="font-serif text-lg font-semibold wine-text">Ukens quiz</h2>
+              <h2 id="quiz-tittel" className="font-serif text-lg font-semibold wine-text">Ukens vinquiz</h2>
               {quizTop.participants > 0 ? (
                 <QuizTopList rows={quizTop.top} compact />
               ) : (
