@@ -18,6 +18,7 @@ model LotteryRound {
   createdAt DateTime @default(now())
   tickets   Ticket[]
   wines     Wine[]
+  quizAttempts QuizAttempt[]
 }
 
 // Flaskene som loddes ut i en runde (kun informasjon om ukens premie)
@@ -45,6 +46,26 @@ model Ticket {
 
   @@unique([number, roundId]) // Sørger for at nr 1-200 bare finnes én gang per runde
 }
+// Ukens quiz: ett forsøk per person per runde, kun for dem som har lodd i runden.
+// Bare den som startet forsøket kan svare (hemmelig token i en cookie, lagret som hash).
+model QuizAttempt {
+  id          Int       @id @default(autoincrement())
+  name        String    // Samme skrivemåte som på loddene (canonicalName)
+  tokenHash   String    // SHA-256 av tokenet i cookien
+  questionIds String[]  // Spørsmålene i forsøket (id fra lib/quiz-questions.ts)
+  answers     Int[]     // Valgt alternativ per besvart spørsmål, -1 = tiden gikk ut
+  score       Int       @default(0)
+  timeMs      Int       @default(0) // Samlet svartid, skiller like poengsummer
+  shownAt     DateTime? // Når spørsmålet som venter på svar ble vist (null = mellom spørsmål)
+  finishedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  roundId     Int
+  round       LotteryRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, name])
+}
+
 // --- Tabeller som administreres direkte i Supabase ---
 // Ligger her så `prisma db push` ikke prøver å slette dem.
 // Kakeliste leses med rå SQL på forsiden (neste kakebaker).

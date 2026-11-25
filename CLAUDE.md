@@ -29,6 +29,7 @@ App-owned models:
 - `Ticket` — one of 200 tickets per round (`number` 1–200, `ownerName`, `isTaken`, `hasWon`). Unique on `[number, roundId]`.
 - `Wine` — the bottles being raffled in a round (`info` string, `imageUrl`, `productCode` = Vinmonopolet item number, `position`). Cascade-deleted with the round.
 - `AdminLoginAttempt` — failed admin logins (SHA-256 of IP) for rate limiting.
+- `QuizAttempt` — one weekly-quiz attempt per name per round (unique `[roundId, name]`): question ids, answers, score, total answer time, `shownAt` for the server-side 20 s limit, and a SHA-256 of the secret token in the `quiz_token` cookie.
 
 Tables managed directly in Supabase (kept in the schema only so `prisma db push` does not drop them):
 - `Ansatte` — employee names.
@@ -41,6 +42,7 @@ All mutations go through **Next.js Server Actions** (not API routes). Server act
 
 - `lib/actions.ts` (`'use server'`, public) — `bookTicket`: validates with Zod, normalises the name via `canonicalName`, rejects if the round is locked.
 - `lib/admin-actions.ts` (`'use server'`, every function checks admin auth) — login, `getAdminPageData`, `getAdminStats`, `drawWinnerAction`, `adminStartNewRound`, `toggleRoundLock`, wine management (`searchVinmonopolet`, `suggestWines`, `addWine`, `updateWine`, `deleteWine`, `addSuggestedWines`, `setWinesConfirmed`), AI summary (`regenerateRoundSummary`, `updateRoundSummary`), `releaseTickets`, `resetDraw`, and dev-only `generateTestTickets` / `removeTestTickets`.
+- `lib/quiz-actions.ts` (`'use server'`, public) — `startQuiz` (only names with tickets in the active round, one attempt per round, closed when the round is locked), `answerQuestion`, `nextQuestion`. The player is identified by the `quiz_token` cookie.
 - `lib/wine-details.ts` (`'use server'`) — wine detail lookup for the wine dialog (by wine id publicly, by product code for admin only).
 
 Plain server modules (**not** `'use server'` — callers must do their own auth checks; do not add `'use server'` to these, it would expose them as endpoints):
@@ -48,6 +50,7 @@ Plain server modules (**not** `'use server'` — callers must do their own auth 
 - `lib/lottery.ts` — `createWeeklyRound`: deactivates the current round and creates a new one with 200 tickets, guarded by a Postgres advisory lock. Also called from `app/page.tsx` when no active round exists.
 - `lib/history.ts` — data for the winner-history page (`getWinnerHistory`, `getLuckStats`).
 - `lib/names.ts` — `canonicalName` (alias lookup + normalisation).
+- `lib/quiz.ts` — weekly quiz: questions per round (fixed rotation, options shuffled per round), attempt state, answer recording with deadline check, top list. `lib/quiz-questions.ts` is the question bank (each question points to a fun fact); import it on the server only, since it contains the answers.
 - `lib/ai-comment.ts` — weekly wine summary via Google Gemini (free tier), based only on Vinmonopolet facts.
 - `lib/wine-details-fetch.ts` — fetches product details from Vinmonopolet's unofficial API (v3; cached for a day).
 - `lib/prisma.ts` — shared Prisma client.
@@ -58,6 +61,7 @@ Pure modules (no side effects, usable on client and server): `lib/wine-details-m
 
 - `app/page.tsx` — Public lottery page. Fetches active round, tickets, wines and cake list; renders a header stamp with the draw date, fun fact + AI summary (left column), wine showcase + cake timeline (right column), progress bar and `<LotteryGrid>`.
 - `app/vinnerhistorikk/page.tsx` — Public winner history and luck stats.
+- `app/quiz/page.tsx` — Weekly quiz (`QuizGame`, `QuizTopList`): five questions, 20 s each, result as a class from the 1855 Bordeaux classification. The front page shows the top 5 and links here; the purchase dialog offers it after a booking.
 - `app/admin/page.tsx` — Admin panel (cookie-authenticated): round management, lock/unlock, ticket bookings, wine list and shopping planner, AI summary, stats, test tools.
 - `app/admin/trekning/page.tsx` — Big-screen live draw. View chosen with `?visning=`: `rutenett` (default), `alle-lodd` (same grid, drawing among all tickets), `automat`, `lykkehjul`, `klassisk`.
 
@@ -78,7 +82,7 @@ Draw views (server picks the winner *before* the animation starts; the animation
 - `drawEffects.ts` — shared confetti, melody and speech.
 
 Admin:
-- `AdminLogin.tsx`, `TicketBookingsEditor.tsx`, `WineListEditor.tsx`, `WineShoppingPlanner.tsx`, `ResetDrawButton.tsx`, `TestTicketsButtons.tsx` (dev only).
+- `AdminLogin.tsx`, `TicketBookingsEditor.tsx`, `WineListEditor.tsx`, `WineShoppingPlanner.tsx`, `ResetDrawButton.tsx`, `TestTicketsButtons.tsx`, `ResetQuizButton.tsx` (dev only; note that dev uses the production database).
 
 Shared: `ThemeToggle.tsx`, `FullscreenButton.tsx`, `PendingSubmitButton.tsx` (disables on submit to prevent double clicks).
 
