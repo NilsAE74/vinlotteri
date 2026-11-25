@@ -67,9 +67,9 @@ export default function CountdownTimer({ roundName }: { roundName: string }) {
   return (
     <div>
       <p className="wine-text-muted text-sm mb-3.5">Trekning om</p>
-      <div className="flex flex-wrap gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 max-w-[220px]">
         {units.map(({ value, label }) => (
-          <div key={label} className="wine-card-bg border wine-border-faint rounded-lg px-4 py-3.5 min-w-[64px] text-center">
+          <div key={label} className="wine-card-bg border wine-border-faint rounded-lg px-4 py-3.5 text-center">
             <div className="text-2xl font-mono font-semibold wine-accent tabular-nums">
               {String(value).padStart(2, '0')}
             </div>
