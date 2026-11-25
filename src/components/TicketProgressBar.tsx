@@ -23,7 +23,7 @@ export default function TicketProgressBar({ taken, total }: Props) {
   const remaining = total - taken;
 
   return (
-    <div className="max-w-xl">
+    <div>
       {/* Label row */}
       <div className="flex justify-between items-baseline mb-2 text-sm flex-wrap gap-1.5">
         <span className="wine-text-muted">
