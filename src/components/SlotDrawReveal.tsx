@@ -155,7 +155,7 @@ export default function SlotDrawReveal({ pot }: { pot: PotTicket[] }) {
     <div className="w-full flex flex-col items-center">
       <div className="relative">
         {/* Automaten */}
-        <div className="rounded-3xl border-4 border-[#722F37] bg-gradient-to-b from-[#2a1216] to-[#0d0506] p-5 md:p-8 shadow-[0_0_60px_rgba(114,47,55,0.45)]">
+        <div className="automat-shell rounded-3xl border-4 p-5 md:p-8">
           <div className="flex gap-3 md:gap-5">
             {[0, 1, 2].map(i => (
               <Reel
@@ -169,12 +169,12 @@ export default function SlotDrawReveal({ pot }: { pot: PotTicket[] }) {
           </div>
 
           {/* Navnet som lyser opp under hjulene */}
-          <div className="mt-5 md:mt-7 h-14 md:h-20 flex items-center justify-center rounded-xl bg-black/40 border border-[#D4AF37]/20 px-6">
+          <div className="mt-5 md:mt-7 h-14 md:h-20 flex items-center justify-center rounded-xl bg-black/40 border border-white/10 px-6">
             {name ? (
               <span
                 key={tick}
-                className={`font-serif text-3xl md:text-5xl truncate text-[#D4AF37] ${
-                  phase === 'revealed' ? 'drop-shadow-[0_0_20px_rgba(212,175,55,0.9)]' : 'name-flash'
+                className={`font-serif text-3xl md:text-5xl truncate wine-accent ${
+                  phase === 'revealed' ? 'drop-shadow-[0_0_20px_rgba(199,154,62,0.9)]' : 'name-flash'
                 }`}
               >
                 {name}
@@ -190,8 +190,8 @@ export default function SlotDrawReveal({ pot }: { pot: PotTicket[] }) {
         {/* Vinnerkort – z-50 så det ligger foran automaten */}
         {showCard && winner && (
           <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <div className="pointer-events-auto wine-card-bg border-2 border-[#D4AF37] rounded-3xl px-10 py-8 md:px-16 md:py-10 text-center shadow-[0_0_80px_rgba(212,175,55,0.45)] pop-in">
-              <div className="font-mono font-bold text-7xl md:text-9xl text-[#D4AF37] tracking-tighter">#{winner.number}</div>
+            <div className="winner-card pointer-events-auto rounded-3xl px-10 py-8 md:px-16 md:py-10 text-center pop-in">
+              <div className="font-mono font-bold text-7xl md:text-9xl wine-accent tracking-tighter">#{winner.number}</div>
               <div className="text-3xl md:text-5xl font-serif wine-text mt-3">{winner.owner}</div>
             </div>
           </div>
@@ -202,14 +202,14 @@ export default function SlotDrawReveal({ pot }: { pot: PotTicket[] }) {
 
       <div className="mt-6 h-16 flex items-center">
         {phase === 'revealed' ? (
-          <button onClick={reset} className="wine-text-muted hover:text-[#D4AF37] transition-colors text-lg">
+          <button onClick={reset} className="wine-link transition-colors text-lg">
             Gjør klar til neste
           </button>
         ) : (
           <button
             onClick={handleDraw}
             disabled={isRunning || pot.length === 0}
-            className="px-10 py-4 bg-[#722F37] text-white font-bold text-xl uppercase tracking-widest rounded-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8a3842] transition-all hover:scale-105 active:scale-95"
+            className="wine-cta px-10 py-4 font-bold text-xl rounded-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-transform"
           >
             {isRunning ? 'Trekker…' : 'Trekk vinner'}
           </button>
@@ -247,16 +247,12 @@ function Reel({
 
   return (
     <div
-      className={`relative w-24 h-36 md:w-40 md:h-56 xl:w-48 xl:h-64 rounded-2xl overflow-hidden border-4 transition-colors duration-300 ${
-        isWinner
-          ? 'border-[#D4AF37] shadow-[0_0_40px_rgba(212,175,55,0.8)]'
-          : state === 'stopped'
-            ? 'border-[#D4AF37]/80'
-            : 'border-[#722F37]'
-      } bg-gradient-to-b from-[#e8e0d8] via-white to-[#e8e0d8]`}
+      className={`reel-drum relative w-24 h-36 md:w-40 md:h-56 xl:w-48 xl:h-64 rounded-2xl overflow-hidden border-4 transition-colors duration-300 ${
+        isWinner ? 'reel-frame-winner' : state === 'stopped' ? 'reel-frame-stopped' : 'reel-frame'
+      }`}
     >
       {state === 'idle' ? (
-        <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-7xl md:text-9xl xl:text-[10rem] leading-none text-[#1a0b0e]/30">
+        <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-7xl md:text-9xl xl:text-[10rem] leading-none text-[#1c1712]/30">
           –
         </div>
       ) : (
@@ -269,7 +265,7 @@ function Reel({
               key={i}
               style={{ height: `${FIELD}%` }}
               className={`flex items-center justify-center font-mono font-bold text-7xl md:text-9xl xl:text-[10rem] leading-none ${
-                isWinner ? 'text-[#722F37]' : 'text-[#1a0b0e]'
+                isWinner ? 'text-[#7a2b35]' : 'text-[#1c1712]'
               }`}
             >
               {n}

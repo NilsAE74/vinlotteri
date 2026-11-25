@@ -82,7 +82,7 @@ export default function LotteryGrid({ tickets, nameSuggestions = [] }: { tickets
           <button
             onClick={() => setIsDialogOpen(true)}
             className="wine-accent-bg font-medium text-lg px-8 py-3 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-2"
-            style={{ color: 'var(--wine-bg)' }}
+            style={{ color: 'var(--wine-ink)' }}
           >
             Kjøp {selectedTickets.length} lodd
             <span className="bg-black/10 px-2 py-0.5 rounded text-sm font-mono">

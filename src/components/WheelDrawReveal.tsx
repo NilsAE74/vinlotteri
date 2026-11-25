@@ -21,7 +21,7 @@ type Segment = { name: string; count: number; start: number; end: number; color:
 const SPIN_MS = 8500; // Hvor lenge hjulet spinner
 const EXTRA_TURNS = 7; // Hele runder før det stopper
 const CARD_DELAY = 1200; // Fra hjulet stopper til vinnerkortet vises
-const COLORS = ['#722F37', '#4E1F26', '#8a3842'];
+const COLORS = ['#7A2B35', '#5A2229', '#943440'];
 
 // Hjulvinkel (grader, med klokka fra toppen) → punkt på sirkelen
 const point = (deg: number, r: number) => {
@@ -167,13 +167,13 @@ export default function WheelDrawReveal({ pot }: { pot: PotTicket[] }) {
         {/* Pil på toppen */}
         <div className="absolute left-1/2 -translate-x-1/2 -top-3 z-20 drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
           <svg width="44" height="52" viewBox="0 0 44 52" aria-hidden="true">
-            <path d="M22 50 L4 6 Q22 -4 40 6 Z" fill="#D4AF37" stroke="#8a6e1f" strokeWidth="2" />
+            <path d="M22 50 L4 6 Q22 -4 40 6 Z" className="wheel-trim wheel-trim-stroke" strokeWidth="2" />
           </svg>
         </div>
 
         <svg viewBox="-105 -105 210 210" className="w-full h-full" role="img" aria-label="Lykkehjul">
           {/* Ytterring */}
-          <circle r="104" fill="#1a0b0e" stroke="#D4AF37" strokeWidth="2" />
+          <circle r="104" className="wheel-plate wheel-trim-stroke" strokeWidth="2" />
 
           <g
             ref={wheelRef}
@@ -186,7 +186,7 @@ export default function WheelDrawReveal({ pot }: { pot: PotTicket[] }) {
             }}
           >
             {segments.length === 0 ? (
-              <circle r="100" fill="#2a1216" />
+              <circle r="100" className="wheel-plate" />
             ) : segments.length === 1 ? (
               <SegmentShape seg={segments[0]} full dim={false} highlight={done} />
             ) : (
@@ -202,15 +202,15 @@ export default function WheelDrawReveal({ pot }: { pot: PotTicket[] }) {
           </g>
 
           {/* Nav i midten */}
-          <circle r="14" fill="#1a0b0e" stroke="#D4AF37" strokeWidth="2.5" />
-          <circle r="5" fill="#D4AF37" />
+          <circle r="14" className="wheel-plate wheel-trim-stroke" strokeWidth="2.5" />
+          <circle r="5" className="wheel-trim" />
         </svg>
 
         {/* Vinnerkort – z-50 så det ligger foran hjulet */}
         {showCard && winner && (
           <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <div className="pointer-events-auto wine-card-bg border-2 border-[#D4AF37] rounded-3xl px-10 py-8 md:px-14 md:py-10 text-center shadow-[0_0_80px_rgba(212,175,55,0.45)] pop-in">
-              <div className="font-mono font-bold text-7xl md:text-8xl text-[#D4AF37] tracking-tighter">#{winner.number}</div>
+            <div className="winner-card pointer-events-auto rounded-3xl px-10 py-8 md:px-14 md:py-10 text-center pop-in">
+              <div className="font-mono font-bold text-7xl md:text-8xl wine-accent tracking-tighter">#{winner.number}</div>
               <div className="text-3xl md:text-5xl font-serif wine-text mt-3">{winner.owner}</div>
             </div>
           </div>
@@ -218,12 +218,12 @@ export default function WheelDrawReveal({ pot }: { pot: PotTicket[] }) {
       </div>
 
       {/* Navnet under pilen */}
-      <div className="mt-6 h-14 md:h-16 min-w-[16rem] flex items-center justify-center rounded-xl bg-black/30 border border-[#D4AF37]/20 px-8">
+      <div className="mt-6 h-14 md:h-16 min-w-[16rem] flex items-center justify-center rounded-xl bg-black/30 border border-white/10 px-8">
         {pointerName && phase !== 'idle' && phase !== 'waiting' ? (
           <span
             key={pointerName}
-            className={`font-serif text-3xl md:text-4xl text-[#D4AF37] truncate ${
-              done ? 'drop-shadow-[0_0_20px_rgba(212,175,55,0.9)]' : 'name-flash'
+            className={`font-serif text-3xl md:text-4xl wine-accent truncate ${
+              done ? 'drop-shadow-[0_0_20px_rgba(199,154,62,0.9)]' : 'name-flash'
             }`}
           >
             {pointerName}
@@ -239,14 +239,14 @@ export default function WheelDrawReveal({ pot }: { pot: PotTicket[] }) {
 
       <div className="mt-4 h-16 flex items-center">
         {phase === 'revealed' ? (
-          <button onClick={reset} className="wine-text-muted hover:text-[#D4AF37] transition-colors text-lg">
+          <button onClick={reset} className="wine-link transition-colors text-lg">
             Gjør klar til neste
           </button>
         ) : (
           <button
             onClick={handleDraw}
             disabled={isRunning || phase === 'landed' || segments.length === 0}
-            className="px-10 py-4 bg-[#722F37] text-white font-bold text-xl uppercase tracking-widest rounded-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8a3842] transition-all hover:scale-105 active:scale-95"
+            className="wine-cta px-10 py-4 font-bold text-xl rounded-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-transform"
           >
             {isRunning || phase === 'landed' ? 'Trekker…' : 'Snurr hjulet'}
           </button>
@@ -293,8 +293,8 @@ function SegmentShape({
     <g style={{ opacity: dim ? 0.25 : 1, transition: 'opacity 600ms' }}>
       <path
         d={path}
-        fill={highlight ? '#D4AF37' : seg.color}
-        stroke="#D4AF37"
+        fill={highlight ? 'var(--wine-accent)' : seg.color}
+        stroke="var(--wine-accent)"
         strokeOpacity={0.6}
         strokeWidth={0.6}
       />
@@ -306,9 +306,9 @@ function SegmentShape({
           textAnchor="middle"
           dominantBaseline="central"
           fontSize={fontSize}
-          fontFamily="Georgia, serif"
+          fontFamily="var(--font-fraunces), serif"
           fontWeight={700}
-          fill={highlight ? '#1a0b0e' : '#F3E7E5'}
+          fill={highlight ? 'var(--wine-ink)' : '#F3ECE2'}
         >
           {label}
         </text>

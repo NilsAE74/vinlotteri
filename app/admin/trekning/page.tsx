@@ -44,20 +44,20 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
   return (
     <main className="min-h-screen wine-page-bg flex flex-col">
       {/* Diskret toppstripe */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-[#722F37]/30">
-        <Link href="/admin" className="wine-text-subtle hover:text-[#D4AF37] text-sm flex items-center gap-1">
+      <header className="flex items-center justify-between px-6 py-3 border-b wine-border-faint">
+        <Link href="/admin" className="wine-link text-sm flex items-center gap-1">
           <ArrowLeft className="w-4 h-4" /> Admin
         </Link>
         <div className="flex items-center gap-2">
           {/* Velg trekningsvisning */}
-          <nav className="flex rounded-lg border border-[#722F37]/50 overflow-hidden text-sm" aria-label="Trekningsvisning">
+          <nav className="flex rounded-lg border wine-border-faint overflow-hidden text-sm" aria-label="Trekningsvisning">
             {VIEWS.map(({ id, label, icon: Icon }) => (
               <Link
                 key={id}
                 href={id === 'rutenett' ? '/admin/trekning' : `/admin/trekning?visning=${id}`}
                 aria-current={view === id ? 'page' : undefined}
                 className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${
-                  view === id ? 'bg-[#722F37] text-[#D4AF37]' : 'wine-text-muted hover:text-[#D4AF37]'
+                  view === id ? 'wine-burgundy-bg wine-accent' : 'wine-link'
                 }`}
               >
                 <Icon className="w-4 h-4" /> <span className="hidden sm:inline">{label}</span>
@@ -95,12 +95,12 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
           <section className="flex flex-col items-center justify-center text-center">
             {view === 'klassisk' || view === 'automat' ? (
               <>
-                <h1 className="text-5xl md:text-6xl font-serif text-[#D4AF37] mb-2">Vinlotteri</h1>
+                <h1 className="text-5xl md:text-6xl font-serif wine-accent mb-2">Vinlotteri</h1>
                 <p className="wine-text-muted text-xl mb-10">{activeRound.name}</p>
               </>
             ) : (
               // Kompakt overskrift, så rutenettet/hjulet får mest mulig plass
-              <h1 className="text-3xl md:text-4xl font-serif text-[#D4AF37] mb-4">
+              <h1 className="text-3xl md:text-4xl font-serif wine-accent mb-4">
                 Vinlotteri <span className="wine-text-muted text-xl md:text-2xl">· {activeRound.name}</span>
               </h1>
             )}
@@ -132,8 +132,8 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
 
           {/* Dagens vinnere – ikke i rutenettet, som uthever vinnerne på brettet */}
           {showWinners && (
-            <aside className="wine-card-alpha border border-[#722F37]/50 rounded-2xl p-6 self-start xl:sticky xl:top-6">
-              <h2 className="text-3xl font-serif text-[#D4AF37] mb-6 flex items-center gap-3">
+            <aside className="wine-card-alpha border wine-border-faint rounded-2xl p-6 self-start xl:sticky xl:top-6">
+              <h2 className="text-3xl font-serif wine-accent mb-6 flex items-center gap-3">
                 <Trophy className="w-7 h-7" /> Dagens vinnere
               </h2>
               {winners.length === 0 ? (
@@ -141,7 +141,7 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
               ) : (
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="wine-text-subtle text-sm uppercase tracking-wider">
+                    <tr className="wine-text-subtle text-sm">
                       <th className="pb-3 w-20">Lodd</th>
                       <th className="pb-3">Vinner</th>
                     </tr>
@@ -149,7 +149,7 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
                   <tbody>
                     {winners.map(w => (
                       <tr key={w.id} className="wine-border-faint border-t text-xl">
-                        <td className="py-3 text-[#D4AF37] font-mono font-bold">{w.number}</td>
+                        <td className="py-3 wine-accent font-mono font-bold">{w.number}</td>
                         <td className="py-3 wine-text font-bold">{w.ownerName}</td>
                       </tr>
                     ))}

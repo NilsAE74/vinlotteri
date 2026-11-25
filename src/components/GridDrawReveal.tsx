@@ -153,8 +153,8 @@ export default function GridDrawReveal({
         {/* Vinnerkort – z-50 så det alltid ligger foran loddene (som har z-10/z-20) */}
         {showCard && winner && (
           <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <div className="pointer-events-auto wine-card-bg border-2 border-[#D4AF37] rounded-3xl px-10 py-8 md:px-16 md:py-10 text-center shadow-[0_0_80px_rgba(212,175,55,0.45)] pop-in">
-              <div className="font-mono font-bold text-7xl md:text-9xl text-[#D4AF37] tracking-tighter">
+            <div className="winner-card pointer-events-auto rounded-3xl px-10 py-8 md:px-16 md:py-10 text-center pop-in">
+              <div className="font-mono font-bold text-7xl md:text-9xl wine-accent tracking-tighter">
                 #{winner.number}
               </div>
               <div className="text-3xl md:text-5xl font-serif wine-text mt-3">
@@ -175,14 +175,14 @@ export default function GridDrawReveal({
 
       <div className="mt-2 h-16 flex items-center">
         {phase === 'revealed' ? (
-          <button onClick={reset} className="wine-text-muted hover:text-[#D4AF37] transition-colors text-lg">
+          <button onClick={reset} className="wine-link transition-colors text-lg">
             Gjør klar til neste
           </button>
         ) : (
           <button
             onClick={handleDraw}
             disabled={isRunning || eligibleNumbers.length === 0}
-            className="px-10 py-4 bg-[#722F37] text-white font-bold text-xl uppercase tracking-widest rounded-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8a3842] transition-all hover:scale-105 active:scale-95"
+            className="wine-cta px-10 py-4 font-bold text-xl rounded-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-transform"
           >
             {isRunning ? 'Trekker…' : 'Trekk vinner'}
           </button>
@@ -208,16 +208,16 @@ function Cell({ ticket, state }: { ticket: GridTicket; state: CellState }) {
 
   const look: Record<CellState, string> = {
     pool: base,
-    finalist: `${base} border-2 border-[#D4AF37]! animate-pulse scale-110 z-10 shadow-[0_0_20px_rgba(212,175,55,0.6)]`,
+    finalist: `${base} ticket-finalist border-2 animate-pulse scale-110 z-10 shadow-[0_0_20px_rgba(199,154,62,0.6)]`,
     eliminated: `${base} opacity-25 scale-95`,
     // Ikke med i potten:
-    // - vunnet (solgt): tydelig gull, som på salgssiden – dette er dagens vinnere
+    // - vunnet (solgt): tydelig messing, som på salgssiden – dette er dagens vinnere
     // - trukket, men usolgt: dempet og gjennomstreket
     // - eieren har allerede vunnet: dempet
     out: ticket.hasWon && sold
-      ? 'bg-gradient-to-br from-[#D4AF37] to-[#8a6e1f] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.4)] z-10'
+      ? 'ticket-result shadow-[0_0_15px_rgba(199,154,62,0.4)] z-10'
       : `${base} opacity-25 ${ticket.hasWon ? 'line-through' : ''}`,
-    winner: 'bg-gradient-to-br from-[#D4AF37] to-[#8a6e1f] border-[#D4AF37] scale-125 z-20 shadow-[0_0_40px_rgba(212,175,55,0.9)]',
+    winner: 'ticket-result scale-125 z-20 shadow-[0_0_40px_rgba(199,154,62,0.9)]',
   };
 
   const gold = state === 'winner' || (state === 'out' && ticket.hasWon && sold);
@@ -228,16 +228,16 @@ function Cell({ ticket, state }: { ticket: GridTicket; state: CellState }) {
       title={ticket.ownerName ?? 'Ikke solgt'}
     >
       <span
-        className={`font-serif font-bold leading-none text-sm lg:text-base 2xl:text-xl ${
-          gold ? 'text-[#1a0b0e]' : sold ? 'wine-text' : 'text-[#D4AF37]/80'
+        className={`font-mono font-bold leading-none text-sm lg:text-base 2xl:text-xl ${
+          gold ? '' : sold ? 'wine-text' : 'wine-text-muted'
         }`}
       >
         {ticket.number}
       </span>
       {sold && (
         <span
-          className={`hidden lg:block mt-1 font-serif leading-tight truncate w-full px-0.5 text-center text-[11px] 2xl:text-[13px] ${
-            gold ? 'text-[#1a0b0e]/80' : 'wine-text-muted'
+          className={`hidden lg:block mt-1 leading-tight truncate w-full px-0.5 text-center text-[11px] 2xl:text-[13px] ${
+            gold ? 'opacity-80' : 'wine-text-muted'
           }`}
         >
           {shortName(ticket.ownerName!)}

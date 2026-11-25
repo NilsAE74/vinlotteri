@@ -12,6 +12,11 @@
   --background: #ffffff;
   --foreground: #171717;
 
+  /* Fast mørk ink – samme i begge temaer. Brukes til tekst som ligger på en
+     messing-flate (knapper, vinnerfelt): --wine-bg er lys i lyst tema, så den
+     duger ikke til det. */
+  --wine-ink: #1c1712;
+
   /* Vintema – mørk (standard). Loddbok-palett: varm nesten-svart, dempet
      messing som aksent (brukes til resultater/live-tilstander, ikke som ramme
      rundt alt), og en mykere burgunder enn før. */
@@ -24,6 +29,7 @@
   --wine-border-faint: rgba(243, 236, 226, 0.12);
   --wine-border-strong: rgba(243, 236, 226, 0.24);
   --wine-burgundy: #7a2b35;
+  --wine-burgundy-hover: #8f3540;
   --wine-accent: #c79a3e;
   --wine-accent-soft: rgba(199, 154, 62, 0.5);
   --ticket-available-bg: rgba(243, 236, 226, 0.04);
@@ -46,6 +52,7 @@
   --wine-border-faint: rgba(43, 32, 22, 0.1);
   --wine-border-strong: rgba(43, 32, 22, 0.22);
   --wine-burgundy: #8c3b46;
+  --wine-burgundy-hover: #9c4b56;
   --wine-accent: #b9893a;
   --wine-accent-soft: rgba(185, 137, 58, 0.5);
   --ticket-available-bg: rgba(43, 32, 22, 0.035);
@@ -74,11 +81,13 @@ body {
 .wine-accent        { color: var(--wine-accent); }
 .wine-accent-border { border-color: var(--wine-accent); }
 .wine-accent-bg     { background-color: var(--wine-accent); }
+.wine-burgundy-bg   { background-color: var(--wine-burgundy); }
 .wine-accent-soft-border { border-color: var(--wine-accent-soft); }
 .ticket-available   { background: var(--ticket-available-bg); border-color: var(--ticket-available-border); }
 .ticket-available:hover { border-color: var(--wine-accent); background: var(--wine-card-alpha); }
 .ticket-taken       { background: var(--ticket-taken-bg); border-color: var(--ticket-taken-border); }
-.ticket-result      { background: var(--wine-accent); border-color: var(--wine-accent); color: var(--wine-bg); }
+.ticket-finalist    { border-color: var(--wine-accent); }
+.ticket-result      { background: var(--wine-accent); border-color: var(--wine-accent); color: var(--wine-ink); }
 .grid-wrapper       { background: var(--grid-wrapper-bg); border-color: var(--grid-wrapper-border); }
 .wine-card-interactive { transition: border-color .15s, background-color .15s; }
 .wine-card-interactive:hover { border-color: var(--wine-accent); }
@@ -87,6 +96,44 @@ body {
 .perf-hole { background-color: var(--wine-bg); }
 .wine-link { color: var(--wine-text-muted); transition: color .15s; }
 .wine-link:hover { color: var(--wine-accent); }
+
+/* Trekningsvisningene (hjul, spilleautomat, klassisk, rutenett) deler denne
+   knappen og vinnerkortet – felles klasser i stedet for firedobbel kopi. */
+.wine-cta {
+  background-color: var(--wine-burgundy);
+  color: var(--wine-text);
+  transition: background-color .2s;
+}
+.wine-cta:hover:not(:disabled) { background-color: var(--wine-burgundy-hover); }
+.winner-card {
+  background-color: var(--wine-card);
+  border: 2px solid var(--wine-accent);
+  box-shadow: 0 0 80px var(--wine-accent-soft);
+}
+
+/* Spilleautomaten: huset og trommelen er et fast fysisk objekt (samme farge i
+   begge temaer, som et ekte skap), mens hjul-rammenes farge er en tilstand
+   (spinner/stoppet/vinner) og følger temaets messing-aksent. */
+.automat-shell { background: linear-gradient(to bottom, #241d16, #1c1712); border-color: #7a2b35; box-shadow: 0 0 60px rgba(122, 43, 53, 0.45); }
+.reel-drum { background: linear-gradient(to bottom, #f3ece2, #ffffff, #f3ece2); }
+.reel-frame { border-color: #7a2b35; }
+.reel-frame-stopped { border-color: var(--wine-accent); }
+.reel-frame-winner { border-color: var(--wine-accent); box-shadow: 0 0 40px var(--wine-accent-soft); }
+
+/* Lykkehjulet: bakplaten er fast mørk (det fysiske hjulet), messing-trimmen
+   (ring, nav, piler) følger temaets aksent. */
+.wheel-plate { fill: #1c1712; }
+.wheel-trim { fill: var(--wine-accent); }
+.wheel-trim-stroke { stroke: var(--wine-accent); }
+
+/* Klassisk visning: sirkelen er et fast lampehus (som automaten/hjulet) til
+   den tennes i messing når en vinner er trukket. */
+.winner-ring { background-color: var(--wine-ink); border-color: #7a2b35; }
+.winner-ring-active {
+  border-color: var(--wine-accent);
+  background-color: color-mix(in srgb, var(--wine-accent) 12%, transparent);
+  box-shadow: 0 0 50px var(--wine-accent-soft);
+}
 /* --- Trekningsanimasjoner --- */
 
 /* Spilleautomat: hvert hjul er en stripe med sifrene 0–9 tre ganger (30 felt).

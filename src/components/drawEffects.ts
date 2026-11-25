@@ -15,14 +15,14 @@ export function fireConfetti() {
       angle: 60,
       spread: 55,
       origin: { x: 0 },
-      colors: ['#D4AF37', '#722F37', '#FFFFFF']
+      colors: ['#C79A3E', '#7A2B35', '#F3ECE2']
     });
     confetti({
       particleCount: 5,
       angle: 120,
       spread: 55,
       origin: { x: 1 },
-      colors: ['#D4AF37', '#722F37', '#FFFFFF']
+      colors: ['#C79A3E', '#7A2B35', '#F3ECE2']
     });
 
     if (Date.now() < end) {

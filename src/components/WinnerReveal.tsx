@@ -109,29 +109,29 @@ export default function WinnerReveal({ takenTickets, large = false }: WinnerReve
       <div className="relative mb-8">
         <div className={`
           relative flex items-center justify-center rounded-full border-4 ${large ? 'w-[28rem] h-[28rem] max-w-[80vw] max-h-[80vw]' : 'w-64 h-64'}
-          ${winnerData ? 'border-[#D4AF37] bg-[#D4AF37]/10 shadow-[0_0_50px_rgba(212,175,55,0.5)]' : 'border-[#722F37]/30 bg-[#1a0b0e]'}
+          ${winnerData ? 'winner-ring-active' : 'winner-ring'}
           transition-all duration-500
         `}>
-          
+
           {/* Sirkel-animasjon mens den trekker */}
           {isDrawing && (
-            <div className="absolute inset-0 rounded-full border-t-4 border-[#D4AF37] animate-spin"></div>
+            <div className="absolute inset-0 rounded-full border-t-4 wine-accent-border animate-spin"></div>
           )}
 
           <div className="text-center">
             {displayNumber !== null ? (
               <>
-                <div className={`${large ? 'text-9xl' : 'text-7xl'} font-bold text-white font-mono tracking-tighter`}>
+                <div className={`${large ? 'text-9xl' : 'text-7xl'} font-bold wine-text font-mono tracking-tighter`}>
                   #{displayNumber}
                 </div>
                 {winnerData && (
-                   <div className={`${large ? 'text-4xl px-6' : 'text-xl'} text-[#D4AF37] font-serif mt-2 animate-in slide-in-from-bottom-2 fade-in`}>
+                   <div className={`${large ? 'text-4xl px-6' : 'text-xl'} wine-accent font-serif mt-2 animate-in slide-in-from-bottom-2 fade-in`}>
                      {winnerData.owner ?? 'Ikke solgt – ingen vinner'}
                    </div>
                 )}
               </>
             ) : (
-              <span className="text-gray-600 font-serif italic text-lg">Klar til trekning</span>
+              <span className="wine-text-subtle font-serif italic text-lg">Klar til trekning</span>
             )}
           </div>
         </div>
@@ -142,19 +142,19 @@ export default function WinnerReveal({ takenTickets, large = false }: WinnerReve
         <button
           onClick={handleDraw}
           disabled={isDrawing || takenTickets.length === 0}
-          className="group relative px-8 py-4 bg-[#722F37] text-white font-bold text-xl uppercase tracking-widest rounded-lg shadow-xl overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8a3842] transition-all hover:scale-105 active:scale-95"
+          className="wine-cta group relative px-8 py-4 font-bold text-xl rounded-lg shadow-xl overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-transform"
         >
           <span className="relative z-10 flex items-center gap-2">
-            {isDrawing ? 'Trekker...' : 'Trekk Vinner'}
+            {isDrawing ? 'Trekker...' : 'Trekk vinner'}
           </span>
         </button>
       )}
 
       {/* Nullstill-knapp for visning */}
       {winnerData && (
-        <button 
+        <button
           onClick={() => { setWinnerData(null); setDisplayNumber(null); }}
-          className="text-gray-500 hover:text-[#D4AF37] transition-colors mt-4 text-sm"
+          className="wine-link mt-4 text-sm"
         >
           Gjør klar til neste
         </button>
