@@ -28,27 +28,18 @@ export default function WineShowcase({
   const count = wines.length === 1 ? 'Ukens vin' : `Ukens viner (${wines.length} flasker)`;
 
   return (
-    <section className="mb-5">
-      <h2 className="text-center text-[#D4AF37] text-xs uppercase tracking-widest mb-2">
+    <section>
+      <p className="wine-text-muted text-sm mb-3.5">
         {confirmed ? count : `Forslag til ${count.charAt(0).toLowerCase()}${count.slice(1)}`}
-      </h2>
+      </p>
       {!confirmed && (
-        <p className="text-center mb-3">
-          <span className="inline-block px-2.5 py-0.5 rounded-full border border-[#D4AF37]/50 text-[#D4AF37] text-xs">
+        <p className="mb-3">
+          <span className="inline-block px-2.5 py-0.5 rounded-full border wine-accent-soft-border wine-accent text-xs">
             Forslag – endelige viner bekreftes når de er kjøpt
           </span>
         </p>
       )}
-      {/* AI-oppsummering av ukens viner */}
-      {summary && (
-        <p className="max-w-2xl mx-auto text-center wine-text-muted text-sm italic leading-relaxed mb-3 px-2">
-          {summary}
-          <span className="not-italic wine-text-subtle text-xs whitespace-nowrap">
-            {' '}<Sparkles aria-hidden className="inline w-3 h-3 -mt-0.5" /> AI
-          </span>
-        </p>
-      )}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-center gap-2 sm:gap-3 max-w-md sm:max-w-none mx-auto">
+      <div className="flex flex-col gap-2.5">
         {wines.map(wine => {
           const { name, details } = splitInfo(wine.info);
           return (
@@ -56,7 +47,7 @@ export default function WineShowcase({
               key={wine.id}
               type="button"
               onClick={() => setOpen(wine)}
-              className="group w-full sm:w-64 wine-card-alpha border border-[#722F37]/50 hover:border-[#D4AF37] rounded-lg px-3 py-2 flex items-center gap-3 text-left transition-colors"
+              className="group wine-card-bg wine-card-interactive border wine-border-faint rounded-lg px-4 py-3 flex items-center gap-3.5 text-left"
               title={`${wine.info}
 Trykk for mer info`}
             >
@@ -68,20 +59,25 @@ Trykk for mer info`}
                   className="w-8 h-12 object-contain shrink-0 transition-transform group-hover:scale-110"
                 />
               ) : (
-                <WineIcon className="w-8 h-12 py-2 text-[#722F37] shrink-0" />
+                <WineIcon aria-hidden className="w-[18px] h-[26px] shrink-0 wine-text-subtle" />
               )}
               <div className="min-w-0 flex-1">
-                <p className="wine-text text-sm font-medium truncate">{name}</p>
-                {details && <p className="wine-text-muted text-xs truncate">{details}</p>}
+                <p className="wine-text text-[15px] font-medium truncate">{name}</p>
+                {details && <p className="font-mono wine-text-muted text-xs truncate mt-0.5">{details}</p>}
               </div>
-              <ChevronRight
-                aria-hidden
-                className="w-4 h-4 shrink-0 text-[#D4AF37]/50 group-hover:text-[#D4AF37] transition-colors"
-              />
+              <ChevronRight aria-hidden className="wine-chevron w-4 h-4 shrink-0 wine-text-subtle transition-colors" />
             </button>
           );
         })}
       </div>
+
+      {/* AI-oppsummering av ukens viner */}
+      {summary && (
+        <p className="mt-4 wine-card-alpha border border-dashed wine-border-strong rounded-lg px-4 py-3.5 flex gap-2.5 items-start wine-text-muted text-[13px] italic leading-relaxed">
+          <Sparkles aria-hidden className="w-4 h-4 shrink-0 mt-0.5 wine-accent not-italic" />
+          <span>{summary}</span>
+        </p>
+      )}
 
       {open && <WineDialog wine={{ ...open, wineId: open.id }} onClose={() => setOpen(null)} />}
     </section>

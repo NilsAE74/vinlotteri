@@ -41,25 +41,25 @@ export default function LotteryGrid({ tickets, nameSuggestions = [] }: { tickets
               className={twMerge(
                 clsx(
                   // Fjernet aspect-square, bruker fast høyde (h-10 / h-12) for kompakt visning
-                  "h-10 sm:h-12 relative flex flex-col items-center justify-center rounded border transition-all duration-200 overflow-hidden group",
+                  "h-10 sm:h-12 relative flex flex-col items-center justify-center rounded border font-mono transition-all duration-200 overflow-hidden",
 
                   // AVAILABLE STATE
-                  !ticket.isTaken && !isSelected && "ticket-available hover:border-[#D4AF37] hover:bg-[#722F37]/20",
+                  !ticket.isTaken && !isSelected && "ticket-available",
 
                   // SELECTED STATE
-                  isSelected && "bg-[#D4AF37] border-[#D4AF37] text-[#1a0b0e] scale-105 z-10 shadow-[0_0_10px_rgba(212,175,55,0.5)]",
+                  isSelected && "ticket-result scale-105 z-10",
 
                   // TAKEN STATE
-                  ticket.isTaken && !ticket.hasWon && "ticket-taken opacity-40 cursor-not-allowed",
+                  ticket.isTaken && !ticket.hasWon && "ticket-taken opacity-60 cursor-not-allowed",
 
                   // WINNER STATE
-                  ticket.hasWon && "bg-gradient-to-br from-[#D4AF37] to-[#8a6e1f] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.4)] scale-110 z-20"
+                  ticket.hasWon && "ticket-result scale-110 z-20 font-semibold"
                 )
               )}
             >
               {ticket.isTaken ? (
-                 <span className="text-[9px] sm:text-[10px] text-gray-400 font-mono truncate w-full px-1 text-center">
-                   {ticket.hasWon ? '🏆' : (() => {
+                 <span className={clsx("text-[9px] sm:text-[10px] truncate w-full px-1 text-center", !ticket.hasWon && "wine-text-subtle")}>
+                   {ticket.hasWon ? '★' : (() => {
                      const nameParts = ticket.ownerName?.split(' ') || [];
                      if (nameParts.length === 0) return '';
                      if (nameParts.length === 1) return nameParts[0];
@@ -67,10 +67,7 @@ export default function LotteryGrid({ tickets, nameSuggestions = [] }: { tickets
                    })()}
                  </span>
               ) : (
-                 <span className={clsx(
-                   "text-sm font-serif font-bold",
-                   isSelected ? "text-[#1a0b0e]" : "text-[#D4AF37]/80 group-hover:text-[#D4AF37]"
-                 )}>
+                 <span className={clsx("text-sm", isSelected ? "" : "wine-text-muted")}>
                    {ticket.number}
                  </span>
               )}
@@ -84,11 +81,12 @@ export default function LotteryGrid({ tickets, nameSuggestions = [] }: { tickets
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-4">
           <button
             onClick={() => setIsDialogOpen(true)}
-            className="bg-[#D4AF37] text-[#1a0b0e] font-serif font-bold text-lg px-8 py-3 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-2"
+            className="wine-accent-bg font-medium text-lg px-8 py-3 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-2"
+            style={{ color: 'var(--wine-bg)' }}
           >
             Kjøp {selectedTickets.length} lodd
-            <span className="bg-[#1a0b0e]/10 px-2 py-0.5 rounded text-sm">
-              (Nr: {selectedTickets.join(', ')})
+            <span className="bg-black/10 px-2 py-0.5 rounded text-sm font-mono">
+              {selectedTickets.join(', ')}
             </span>
           </button>
         </div>

@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Fraunces: ordmerket og store tall (loddbok-følelsen) – det ene serif-øyeblikket.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Inter: all brødtekst og UI.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+});
+
+// IBM Plex Mono: det som faktisk er data – loddnummer, nedtelling, vindetaljer.
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -32,7 +41,7 @@ export default async function RootLayout({
   return (
     <html lang="en" data-theme={theme}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${fraunces.variable} ${inter.variable} ${plexMono.variable} antialiased`}
       >
         {children}
       </body>

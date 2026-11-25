@@ -23,11 +23,11 @@ export default function TicketProgressBar({ taken, total }: Props) {
   const remaining = total - taken;
 
   return (
-    <div className="max-w-2xl mx-auto px-2">
+    <div className="max-w-xl">
       {/* Label row */}
-      <div className="flex justify-between items-baseline mb-1.5 text-sm">
+      <div className="flex justify-between items-baseline mb-2 text-sm flex-wrap gap-1.5">
         <span className="wine-text-muted">
-          <span className="text-[#D4AF37] font-semibold">{taken}</span> av {total} lodd solgt
+          <span className="wine-accent font-semibold">{taken}</span> av {total} lodd solgt
         </span>
         <span className="wine-text-subtle text-xs">
           {remaining > 0 ? `${remaining} ledige` : 'Utsolgt'}
@@ -35,13 +35,12 @@ export default function TicketProgressBar({ taken, total }: Props) {
       </div>
 
       {/* Bar track */}
-      <div className="relative h-3 rounded-full overflow-hidden wine-card-bg border wine-border-faint">
+      <div className="relative h-2.5 rounded-md overflow-hidden wine-card-bg border wine-border-faint">
         <div
-          className="h-full rounded-full transition-all duration-700 ease-out"
+          className="h-full rounded-md transition-all duration-700 ease-out"
           style={{
             width: `${barPct}%`,
-            background: 'linear-gradient(90deg, #722F37 0%, #D4AF37 100%)',
-            boxShadow: barPct > 0 ? '0 0 8px rgba(212,175,55,0.4)' : 'none',
+            background: 'linear-gradient(90deg, var(--wine-burgundy) 0%, var(--wine-accent) 100%)',
           }}
         />
       </div>

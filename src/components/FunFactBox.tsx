@@ -6,13 +6,12 @@ export default function FunFactBox({ fact }: { fact: string }) {
   return (
     <aside
       aria-label="Fun fact om vin"
-      className="max-w-2xl mx-auto mb-5 wine-card-alpha border border-[#D4AF37]/30 rounded-lg px-4 py-3 flex gap-3 items-start"
+      className="mt-6 wine-card-alpha border border-dashed wine-border-strong rounded-lg px-4 py-3.5 flex gap-2.5 items-start"
     >
-      <Lightbulb aria-hidden className="w-5 h-5 shrink-0 mt-0.5 text-[#D4AF37]" />
-      <div>
-        <p className="text-[#D4AF37] text-xs uppercase tracking-widest mb-1">Fun fact om vin</p>
-        <p className="wine-text text-sm leading-relaxed">{fact}</p>
-      </div>
+      <Lightbulb aria-hidden className="w-[18px] h-[18px] shrink-0 mt-0.5 wine-accent" />
+      <p className="wine-text text-[13.5px] leading-relaxed">
+        <span className="wine-text-muted">Visste du dette?</span> {fact}
+      </p>
     </aside>
   );
 }

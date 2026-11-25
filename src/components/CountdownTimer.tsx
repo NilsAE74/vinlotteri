@@ -49,7 +49,7 @@ export default function CountdownTimer({ roundName }: { roundName: string }) {
 
   if (isPast) {
     return (
-      <p className="text-center text-[#D4AF37] text-sm uppercase tracking-widest">
+      <p className="text-center wine-accent text-sm">
         Tid for trekning
       </p>
     );
@@ -58,22 +58,22 @@ export default function CountdownTimer({ roundName }: { roundName: string }) {
   if (!timeLeft) return null;
 
   const units = [
-    { value: timeLeft.days,    label: 'Dager' },
-    { value: timeLeft.hours,   label: 'Timer' },
-    { value: timeLeft.minutes, label: 'Min' },
-    { value: timeLeft.seconds, label: 'Sek' },
+    { value: timeLeft.days,    label: 'dager' },
+    { value: timeLeft.hours,   label: 'timer' },
+    { value: timeLeft.minutes, label: 'min' },
+    { value: timeLeft.seconds, label: 'sek' },
   ];
 
   return (
-    <div className="text-center">
-      <p className="wine-text-muted text-xs uppercase tracking-widest mb-3">Trekning om</p>
-      <div className="flex justify-center gap-3">
+    <div>
+      <p className="wine-text-muted text-sm mb-3.5">Trekning om</p>
+      <div className="flex flex-wrap gap-2.5">
         {units.map(({ value, label }) => (
-          <div key={label} className="wine-card-bg border border-[#722F37]/40 rounded-lg px-4 py-3 min-w-[62px]">
-            <div className="text-2xl font-mono font-bold text-[#D4AF37] tabular-nums">
+          <div key={label} className="wine-card-bg border wine-border-faint rounded-lg px-4 py-3.5 min-w-[64px] text-center">
+            <div className="text-2xl font-mono font-semibold wine-accent tabular-nums">
               {String(value).padStart(2, '0')}
             </div>
-            <div className="text-xs wine-text-subtle uppercase tracking-wider mt-1">{label}</div>
+            <div className="text-[11px] wine-text-subtle mt-1">{label}</div>
           </div>
         ))}
       </div>

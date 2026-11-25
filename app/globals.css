@@ -1,66 +1,91 @@
 @import "tailwindcss";
 
+/* Kobler de tre lastede fontene til Tailwinds font-serif / font-sans / font-mono,
+   så utility-klassene faktisk bruker dem (se layout.tsx for next/font-oppsettet). */
+@theme {
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-fraunces);
+  --font-mono: var(--font-plex-mono);
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
 
-  /* Wine theme – dark (default) */
-  --wine-bg: #0d0506;
-  --wine-card: #1a0b0e;
-  --wine-card-alpha: rgba(26, 11, 14, 0.8);
-  --wine-text: #ffffff;
-  --wine-text-muted: #9ca3af;
-  --wine-text-subtle: #6b7280;
-  --wine-border-faint: rgba(255, 255, 255, 0.05);
-  --ticket-available-bg: rgba(42, 18, 22, 0.6);
-  --ticket-available-border: rgba(114, 47, 55, 0.3);
-  --ticket-taken-bg: #111111;
-  --ticket-taken-border: #333333;
-  --grid-wrapper-bg: rgba(255, 255, 255, 0.05);
-  --grid-wrapper-border: rgba(255, 255, 255, 0.1);
+  /* Vintema – mørk (standard). Loddbok-palett: varm nesten-svart, dempet
+     messing som aksent (brukes til resultater/live-tilstander, ikke som ramme
+     rundt alt), og en mykere burgunder enn før. */
+  --wine-bg: #1c1712;
+  --wine-card: #241d16;
+  --wine-card-alpha: rgba(36, 29, 22, 0.72);
+  --wine-text: #f3ece2;
+  --wine-text-muted: #b9ac9b;
+  --wine-text-subtle: #8a7d6e;
+  --wine-border-faint: rgba(243, 236, 226, 0.12);
+  --wine-border-strong: rgba(243, 236, 226, 0.24);
+  --wine-burgundy: #7a2b35;
+  --wine-accent: #c79a3e;
+  --wine-accent-soft: rgba(199, 154, 62, 0.5);
+  --ticket-available-bg: rgba(243, 236, 226, 0.04);
+  --ticket-available-border: rgba(243, 236, 226, 0.16);
+  --ticket-taken-bg: rgba(0, 0, 0, 0.25);
+  --ticket-taken-border: var(--wine-border-faint);
+  --grid-wrapper-bg: rgba(243, 236, 226, 0.03);
+  --grid-wrapper-border: var(--wine-border-faint);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-/* Wine theme – light */
+/* Vintema – lys. Samme struktur, lysere loddpapir-bakgrunn og en messing-
+   nyanse tonet for kontrast mot hvitt i stedet for mot nesten-svart. */
 [data-theme="light"] {
-  --wine-bg: #fdf6f0;
+  --wine-bg: #f8f2e7;
   --wine-card: #ffffff;
-  --wine-card-alpha: rgba(255, 255, 255, 0.9);
-  --wine-text: #1a0507;
-  --wine-text-muted: #6b7280;
-  --wine-text-subtle: #9ca3af;
-  --wine-border-faint: rgba(0, 0, 0, 0.07);
-  --ticket-available-bg: #fdf0f0;
-  --ticket-available-border: rgba(114, 47, 55, 0.35);
-  --ticket-taken-bg: #ede4e4;
-  --ticket-taken-border: #c9aeae;
-  --grid-wrapper-bg: rgba(255, 255, 255, 0.75);
-  --grid-wrapper-border: rgba(114, 47, 55, 0.2);
+  --wine-card-alpha: rgba(255, 255, 255, 0.86);
+  --wine-text: #2b2016;
+  --wine-text-muted: #6b5842;
+  --wine-text-subtle: #9c8b74;
+  --wine-border-faint: rgba(43, 32, 22, 0.1);
+  --wine-border-strong: rgba(43, 32, 22, 0.22);
+  --wine-burgundy: #8c3b46;
+  --wine-accent: #b9893a;
+  --wine-accent-soft: rgba(185, 137, 58, 0.5);
+  --ticket-available-bg: rgba(43, 32, 22, 0.035);
+  --ticket-available-border: rgba(43, 32, 22, 0.16);
+  --ticket-taken-bg: rgba(43, 32, 22, 0.06);
+  --ticket-taken-border: var(--wine-border-faint);
+  --grid-wrapper-bg: rgba(43, 32, 22, 0.02);
+  --grid-wrapper-border: var(--wine-border-faint);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* Wine theme utility classes */
-.wine-page-bg     { background-color: var(--wine-bg); color: var(--wine-text); }
-.wine-card-bg     { background-color: var(--wine-card); }
-.wine-card-alpha  { background: var(--wine-card-alpha); }
-.wine-text        { color: var(--wine-text); }
-.wine-text-muted  { color: var(--wine-text-muted); }
-.wine-text-subtle { color: var(--wine-text-subtle); }
-.wine-border-faint { border-color: var(--wine-border-faint); }
-.ticket-available  { background: var(--ticket-available-bg); border-color: var(--ticket-available-border); }
-.ticket-taken      { background: var(--ticket-taken-bg); border-color: var(--ticket-taken-border); }
-.grid-wrapper      { background: var(--grid-wrapper-bg); border-color: var(--grid-wrapper-border); }
+.wine-page-bg      { background-color: var(--wine-bg); color: var(--wine-text); }
+.wine-card-bg       { background-color: var(--wine-card); }
+.wine-card-alpha    { background: var(--wine-card-alpha); }
+.wine-text          { color: var(--wine-text); }
+.wine-text-muted    { color: var(--wine-text-muted); }
+.wine-text-subtle   { color: var(--wine-text-subtle); }
+.wine-border-faint  { border-color: var(--wine-border-faint); }
+.wine-border-strong { border-color: var(--wine-border-strong); }
+.wine-accent        { color: var(--wine-accent); }
+.wine-accent-border { border-color: var(--wine-accent); }
+.wine-accent-bg     { background-color: var(--wine-accent); }
+.wine-accent-soft-border { border-color: var(--wine-accent-soft); }
+.ticket-available   { background: var(--ticket-available-bg); border-color: var(--ticket-available-border); }
+.ticket-available:hover { border-color: var(--wine-accent); background: var(--wine-card-alpha); }
+.ticket-taken       { background: var(--ticket-taken-bg); border-color: var(--ticket-taken-border); }
+.ticket-result      { background: var(--wine-accent); border-color: var(--wine-accent); color: var(--wine-bg); }
+.grid-wrapper       { background: var(--grid-wrapper-bg); border-color: var(--grid-wrapper-border); }
+.wine-card-interactive { transition: border-color .15s, background-color .15s; }
+.wine-card-interactive:hover { border-color: var(--wine-accent); }
+.wine-card-interactive:hover .wine-chevron { color: var(--wine-accent); }
+.perf-dot { background-color: var(--wine-border-strong); }
+.wine-link { color: var(--wine-text-muted); transition: color .15s; }
+.wine-link:hover { color: var(--wine-accent); }
 /* --- Trekningsanimasjoner --- */
 
 /* Spilleautomat: hvert hjul er en stripe med sifrene 0–9 tre ganger (30 felt).
@@ -87,9 +112,9 @@ body {
 
 /* Navnet under hjulene blinker opp ved hvert nytt lodd */
 @keyframes name-flash {
-  from { opacity: 0.35; text-shadow: 0 0 0 rgba(212, 175, 55, 0); }
-  30%  { opacity: 1;    text-shadow: 0 0 18px rgba(212, 175, 55, 0.8); }
-  to   { opacity: 0.85; text-shadow: 0 0 6px rgba(212, 175, 55, 0.3); }
+  from { opacity: 0.35; text-shadow: 0 0 0 rgba(199, 154, 62, 0); }
+  30%  { opacity: 1;    text-shadow: 0 0 18px rgba(199, 154, 62, 0.8); }
+  to   { opacity: 0.85; text-shadow: 0 0 6px rgba(199, 154, 62, 0.3); }
 }
 .name-flash { animation: name-flash 300ms ease-out; }
 
@@ -118,14 +143,14 @@ body {
 
 /* Gløden ligger i et eget lag bak innholdet og animerer bare opacity,
    så teksten på kortet ikke tegnes på nytt og står helt stille. */
-.kake-focus { box-shadow: 0 0 12px rgba(212, 175, 55, 0.25); }
+.kake-focus { box-shadow: 0 0 12px rgba(199, 154, 62, 0.25); }
 .kake-focus::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  box-shadow: 0 0 28px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 28px rgba(199, 154, 62, 0.5);
   pointer-events: none;
   opacity: 0;
   animation: kake-glow 3s ease-in-out infinite;
