@@ -1,17 +1,41 @@
-import { Lightbulb } from 'lucide-react';
+'use client';
 
-// Fun fact om vin på forsiden. Faktaen velges på serveren (pickFunFact),
-// så det kommer en ny hver gang siden lastes.
-export default function FunFactBox({ fact }: { fact: string }) {
+import { useState } from 'react';
+import { Lightbulb, Shuffle } from 'lucide-react';
+import { WINE_FUN_FACTS, pickFunFactIndex } from '@/lib/wine-fun-facts';
+
+// Fun fact om vin på forsiden. Første fakta velges på serveren (så server- og
+// klient-HTML er like); «Trekk en ny» trekker en annen tilfeldig fra listen.
+export default function FunFactBox({ initialIndex }: { initialIndex: number }) {
+  const [index, setIndex] = useState(initialIndex);
+  const [drawn, setDrawn] = useState(false);
+
   return (
     <aside
       aria-label="Fun fact om vin"
-      className="max-w-2xl mx-auto mb-5 wine-card-alpha border border-[#D4AF37]/30 rounded-lg px-4 py-3 flex gap-3 items-start"
+      className="wine-card-alpha border border-dashed wine-border-strong rounded-lg px-4 pt-3.5 pb-2.5 flex gap-2.5 items-start"
     >
-      <Lightbulb aria-hidden className="w-5 h-5 shrink-0 mt-0.5 text-[#D4AF37]" />
-      <div>
-        <p className="text-[#D4AF37] text-xs uppercase tracking-widest mb-1">Fun fact om vin</p>
-        <p className="wine-text text-sm leading-relaxed">{fact}</p>
+      <Lightbulb aria-hidden className="w-[18px] h-[18px] shrink-0 mt-0.5 wine-accent" />
+      <div className="min-w-0 flex-1">
+        {/* Ny key ved hver trekning, så inntoningen spilles av på nytt */}
+        <p
+          key={index}
+          aria-live="polite"
+          className={`wine-text text-[13.5px] leading-relaxed${drawn ? ' fact-in' : ''}`}
+        >
+          <span className="wine-text-muted">Visste du dette?</span> {WINE_FUN_FACTS[index]}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setIndex(i => pickFunFactIndex(i));
+            setDrawn(true);
+          }}
+          className="wine-link mt-1.5 -ml-1 inline-flex items-center gap-1.5 rounded px-1 py-1 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]"
+        >
+          <Shuffle aria-hidden className="w-3.5 h-3.5" />
+          Trekk en ny
+        </button>
       </div>
     </aside>
   );

@@ -80,7 +80,8 @@ export default function KakeTidslinje({ uker, currentYear, currentWeek }: KakeTi
   if (uker.length === 0) return null;
 
   return (
-    <section aria-label="Kakebakere" className="mb-5">
+    <section aria-labelledby="kakebakere-heading">
+      <p id="kakebakere-heading" className="wine-text-muted text-sm mb-3.5">Kakebakere</p>
       <div
         ref={scrollerRef}
         onPointerDown={onPointerDown}
@@ -108,32 +109,32 @@ export default function KakeTidslinje({ uker, currentYear, currentWeek }: KakeTi
                   // Kortet for aktuell kakebaker er h-32, de andre halvparten (h-16).
                   'relative snap-center shrink-0 w-36 rounded-xl border px-3 text-center transition-all flex flex-col justify-center',
                   isFocus
-                    ? 'h-32 py-3 kake-focus wine-card-bg border-[#D4AF37]'
+                    ? 'h-32 py-3 kake-focus wine-card-bg wine-accent-border'
                     : 'h-16 py-2 wine-card-alpha wine-border-faint',
                   isPast ? 'opacity-45' : '',
                 ].join(' ')}
               >
                 {nyttAar && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full border border-[#D4AF37]/50 wine-card-bg px-2 text-[10px] leading-4 tracking-widest text-[#D4AF37]">
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full border wine-accent-soft-border wine-card-bg px-2 text-[10px] leading-4 wine-accent">
                     {u.aar}
                   </span>
                 )}
 
                 {isFocus ? (
                   <>
-                    <div className="text-[10px] uppercase tracking-widest text-[#D4AF37]">
+                    <div className="text-xs wine-accent">
                       {isThisWeek ? 'Denne uka' : 'Neste kake'} <span aria-hidden>🎂</span>
                     </div>
-                    <div className="font-serif text-2xl text-[#D4AF37] leading-tight">Uke {u.uke}</div>
+                    <div className="font-mono text-base wine-text-muted leading-tight mt-0.5">Uke {u.uke}</div>
                     <div className="mt-1 wine-text text-base font-medium leading-snug line-clamp-2 break-words">
                       {navn}
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center justify-center gap-1 text-[10px] uppercase tracking-widest wine-text-subtle">
+                    <div className="flex items-center justify-center gap-1 font-mono text-xs wine-text-subtle">
                       Uke {u.uke}
-                      {isPast && <Check className="w-3 h-3 text-[#D4AF37]/70" aria-label="Ferdig" />}
+                      {isPast && <Check className="w-3 h-3 wine-text-subtle" aria-label="Ferdig" />}
                     </div>
                     <div className="wine-text-muted text-sm font-medium truncate">{navn}</div>
                   </>

@@ -1,10 +1,27 @@
 @import "tailwindcss";
 
+/* Kobler de tre lastede fontene til Tailwinds font-serif / font-sans / font-mono,
+   så utility-klassene faktisk bruker dem (se layout.tsx for next/font-oppsettet). */
+@theme {
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-fraunces);
+  --font-mono: var(--font-plex-mono);
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
 
-  /* Wine theme – dark (default) */
+  /* Messing og burgunder er identiske i begge temaer (se CLAUDE.md) – samme
+     fast ink til tekst som ligger på en messing-flate (knapper, vinnerfelt). */
+  --wine-ink: #1a0b0e;
+  --wine-accent: #d4af37;
+  --wine-accent-soft: rgba(212, 175, 55, 0.5);
+  --wine-burgundy: #722f37;
+  --wine-burgundy-hover: #8a3842;
+  --wine-border-strong: rgba(212, 175, 55, 0.3);
+
+  /* Vintema – mørk (standard). */
   --wine-bg: #0d0506;
   --wine-card: #1a0b0e;
   --wine-card-alpha: rgba(26, 11, 14, 0.8);
@@ -20,14 +37,7 @@
   --grid-wrapper-border: rgba(255, 255, 255, 0.1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-/* Wine theme – light */
+/* Vintema – lys. */
 [data-theme="light"] {
   --wine-bg: #fdf6f0;
   --wine-card: #ffffff;
@@ -47,20 +57,84 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* Wine theme utility classes */
-.wine-page-bg     { background-color: var(--wine-bg); color: var(--wine-text); }
-.wine-card-bg     { background-color: var(--wine-card); }
-.wine-card-alpha  { background: var(--wine-card-alpha); }
-.wine-text        { color: var(--wine-text); }
-.wine-text-muted  { color: var(--wine-text-muted); }
-.wine-text-subtle { color: var(--wine-text-subtle); }
-.wine-border-faint { border-color: var(--wine-border-faint); }
-.ticket-available  { background: var(--ticket-available-bg); border-color: var(--ticket-available-border); }
-.ticket-taken      { background: var(--ticket-taken-bg); border-color: var(--ticket-taken-border); }
-.grid-wrapper      { background: var(--grid-wrapper-bg); border-color: var(--grid-wrapper-border); }
+.wine-page-bg      { background-color: var(--wine-bg); color: var(--wine-text); }
+.wine-card-bg       { background-color: var(--wine-card); }
+.wine-card-alpha    { background: var(--wine-card-alpha); }
+.wine-text          { color: var(--wine-text); }
+.wine-text-muted    { color: var(--wine-text-muted); }
+.wine-text-subtle   { color: var(--wine-text-subtle); }
+.wine-border-faint  { border-color: var(--wine-border-faint); }
+.wine-border-strong { border-color: var(--wine-border-strong); }
+.wine-accent        { color: var(--wine-accent); }
+.wine-accent-border { border-color: var(--wine-accent); }
+.wine-accent-bg     { background-color: var(--wine-accent); }
+.wine-burgundy-bg   { background-color: var(--wine-burgundy); }
+.wine-accent-soft-border { border-color: var(--wine-accent-soft); }
+.ticket-available   { background: var(--ticket-available-bg); border-color: var(--ticket-available-border); }
+.ticket-available:hover { border-color: var(--wine-accent); background: var(--wine-card-alpha); }
+.ticket-taken       { background: var(--ticket-taken-bg); border-color: var(--ticket-taken-border); }
+.ticket-finalist    { border-color: var(--wine-accent); }
+.ticket-result      { background: var(--wine-accent); border-color: var(--wine-accent); color: var(--wine-ink); }
+.grid-wrapper       { background: var(--grid-wrapper-bg); border-color: var(--grid-wrapper-border); }
+.wine-card-interactive { transition: border-color .15s, background-color .15s; }
+.wine-card-interactive:hover { border-color: var(--wine-accent); }
+.wine-card-interactive:hover .wine-chevron { color: var(--wine-accent); }
+.perf-line { background-color: var(--wine-border-strong); }
+.perf-hole { background-color: var(--wine-bg); }
+.wine-link { color: var(--wine-text-muted); transition: color .15s; }
+.wine-link:hover { color: var(--wine-accent); }
+
+/* Fun fact: ny tekst tones inn når man trekker en ny (ikke ved sidelasting). */
+@keyframes fact-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fact-in { animation: fact-in 250ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .fact-in { animation: none; }
+}
+
+/* Trekningsvisningene (hjul, spilleautomat, klassisk, rutenett) deler denne
+   knappen og vinnerkortet – felles klasser i stedet for firedobbel kopi. */
+.wine-cta {
+  background-color: var(--wine-burgundy);
+  color: var(--wine-text);
+  transition: background-color .2s;
+}
+.wine-cta:hover:not(:disabled) { background-color: var(--wine-burgundy-hover); }
+.winner-card {
+  background-color: var(--wine-card);
+  border: 2px solid var(--wine-accent);
+  box-shadow: 0 0 80px var(--wine-accent-soft);
+}
+
+/* Spilleautomaten: huset og trommelen er et fast fysisk objekt (samme farge i
+   begge temaer, som et ekte skap), mens hjul-rammenes farge er en tilstand
+   (spinner/stoppet/vinner) og følger temaets messing-aksent. */
+.automat-shell { background: linear-gradient(to bottom, #2a1216, #0d0506); border-color: #722f37; box-shadow: 0 0 60px rgba(114, 47, 55, 0.45); }
+.reel-drum { background: linear-gradient(to bottom, #e8e0d8, #ffffff, #e8e0d8); }
+.reel-frame { border-color: #722f37; }
+.reel-frame-stopped { border-color: var(--wine-accent); }
+.reel-frame-winner { border-color: var(--wine-accent); box-shadow: 0 0 40px var(--wine-accent-soft); }
+
+/* Lykkehjulet: bakplaten er fast mørk (det fysiske hjulet), messing-trimmen
+   (ring, nav, piler) følger temaets aksent. */
+.wheel-plate { fill: #1a0b0e; }
+.wheel-trim { fill: var(--wine-accent); }
+.wheel-trim-stroke { stroke: var(--wine-accent); }
+
+/* Klassisk visning: sirkelen er et fast lampehus (som automaten/hjulet) til
+   den tennes i messing når en vinner er trukket. */
+.winner-ring { background-color: var(--wine-ink); border-color: #722f37; }
+.winner-ring-active {
+  border-color: var(--wine-accent);
+  background-color: color-mix(in srgb, var(--wine-accent) 12%, transparent);
+  box-shadow: 0 0 50px var(--wine-accent-soft);
+}
 /* --- Trekningsanimasjoner --- */
 
 /* Spilleautomat: hvert hjul er en stripe med sifrene 0–9 tre ganger (30 felt).
