@@ -11,6 +11,8 @@ import {
   clearFailedLogins,
 } from './admin-auth';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+import { QUIZ_COOKIE } from './quiz';
 import { formatWine, type WineSearchResult } from './wine-format';
 import { fetchWineDetails } from './wine-details-fetch';
 import { generateWeeklySummary } from './ai-comment';
@@ -727,6 +729,24 @@ export async function removeTestTickets() {
   });
 
   revalidatePath('/');
+  revalidatePath('/admin', 'layout');
+  return { success: true, count: result.count };
+}
+
+// Sletter alle quizforsøk i den aktive runden, så alle kan ta quizen på nytt.
+// Fjerner også quiz-cookien i denne nettleseren. Kun i utviklingsmodus.
+export async function resetQuiz() {
+  const denied = await assertDevAdmin();
+  if (denied) return denied;
+
+  const activeRound = await prisma.lotteryRound.findFirst({ where: { isActive: true } });
+  if (!activeRound) return { success: false, message: 'Ingen aktiv runde' };
+
+  const result = await prisma.quizAttempt.deleteMany({ where: { roundId: activeRound.id } });
+  (await cookies()).delete(QUIZ_COOKIE);
+
+  revalidatePath('/');
+  revalidatePath('/quiz');
   revalidatePath('/admin', 'layout');
   return { success: true, count: result.count };
 }

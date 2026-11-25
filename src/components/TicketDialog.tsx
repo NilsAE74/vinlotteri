@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { bookTicket } from '@/lib/actions';
 import { Loader2 } from 'lucide-react';
 
@@ -171,6 +172,14 @@ export default function TicketDialog({ ticketNumbers, isOpen, onClose, onSuccess
             >
               Betal {amount} kr med Vipps
             </a>
+            {/* Valgfritt: ukens quiz er for dem som har lodd i runden */}
+            <p className="mt-2 text-sm text-gray-300">
+              Nå kan du også ta{' '}
+              <Link href="/quiz" className="text-[#D4AF37] underline underline-offset-4 hover:text-white">
+                ukens quiz
+              </Link>
+              , hvis du vil. Fem spørsmål om vin, ett forsøk.
+            </p>
             <button
               type="button"
               onClick={handleClose}
