@@ -10,9 +10,9 @@ import { Play } from 'lucide-react'; // Ikon for start-knapp
 import WineLogo from '@/src/components/WineLogo';
 import WineShowcase from '@/src/components/WineShowcase';
 import FunFactBox from '@/src/components/FunFactBox';
-import { pickFunFact } from '@/lib/wine-fun-facts';
+import WineSummaryBox from '@/src/components/WineSummaryBox';
+import { pickFunFactIndex } from '@/lib/wine-fun-facts';
 import ThemeToggle from '@/src/components/ThemeToggle';
-import CountdownTimer from '@/src/components/CountdownTimer';
 import TicketProgressBar from '@/src/components/TicketProgressBar';
 import KakeTidslinje, { type KakeUke } from '@/src/components/KakeTidslinje';
 import Perforation from '@/src/components/Perforation';
@@ -104,17 +104,16 @@ export default async function Home() {
     if (siste && siste.aar === aar && siste.uke === uke) siste.navn.push(navn);
     else kakeUker.push({ aar, uke: uke!, navn: [navn] });
   }
-  // Neste kakebaker = første kakeuke (år + uke) som ikke er passert
-  const nextKake = kakeUker.find(k => k.aar * 100 + k.uke >= today.year * 100 + today.week) ?? null;
 
   // Navneforslag i kjøpsdialogen, så samme person alltid skrives likt
   const ansatte = await prisma.ansatte.findMany({ where: { Navn: { not: null } }, select: { Navn: true } });
   const ansattNavn = [...new Set(ansatte.map(a => a.Navn!.trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'nb'));
 
-  const funFact = pickFunFact();
+  const funFactIndex = pickFunFactIndex();
 
   const roundLabel = activeRound.name ?? '';
+  const drawDate = formatDrawDate(roundLabel);
 
   return (
     <main className="min-h-screen wine-page-bg overflow-x-hidden">
@@ -127,8 +126,8 @@ export default async function Home() {
             <h1 className="font-serif text-4xl font-semibold tracking-tight wine-text">Vinlotteri</h1>
           </div>
           <div className="flex items-center gap-3.5">
-            <div className="font-mono text-[13px] wine-text-muted border border-dashed wine-border-strong rounded-lg px-3.5 py-2 whitespace-nowrap">
-              {roundLabel} · trekning fredag 14.15
+            <div className="font-mono text-[13px] wine-text-muted border border-dashed wine-border-strong rounded-lg px-3.5 py-2">
+              {roundLabel}, trekning {drawDate ?? 'fredag'} kl. 14.15
             </div>
             <ThemeToggle initialTheme={theme} />
           </div>
@@ -136,28 +135,27 @@ export default async function Home() {
 
         <Perforation />
 
-        {/* Nedtelling + fun fact i én kolonne, ukens viner i den andre */}
+        {/* Fun fact + AI-oppsummering i én kolonne, ukens viner + kakebakere i den andre */}
         <div className="flex flex-wrap gap-10">
-          <div className="flex-[1_1_260px] min-w-[240px]">
-            <CountdownTimer roundName={nextKake ? `Uke ${nextKake.uke}, ${nextKake.aar}` : roundLabel} />
-            <FunFactBox fact={funFact} />
+          <div className="flex-[1_1_260px] min-w-[240px] flex flex-col gap-4">
+            <FunFactBox initialIndex={funFactIndex} />
+            {activeRound.wines.length > 0 && activeRound.aiSummary && (
+              <WineSummaryBox summary={activeRound.aiSummary} />
+            )}
           </div>
 
-          <div className="flex-[999_1_420px] min-w-0">
+          <div className="flex-[999_1_420px] min-w-0 flex flex-col gap-8">
             {activeRound.wines.length > 0 && (
               <WineShowcase
                 wines={activeRound.wines.map(({ id, info, imageUrl, productCode }) => ({ id, info, imageUrl, productCode }))}
-                summary={activeRound.aiSummary}
                 confirmed={activeRound.winesConfirmed}
               />
             )}
+
+            {/* Kakebakere – kun ukene som står i kakelisten */}
+            <KakeTidslinje uker={kakeUker} currentYear={today.year} currentWeek={today.week} />
           </div>
         </div>
-
-        <Perforation />
-
-        {/* Kakebakere – kun ukene som står i kakelisten */}
-        <KakeTidslinje uker={kakeUker} currentYear={today.year} currentWeek={today.week} />
 
         <Perforation />
 
@@ -188,6 +186,23 @@ function getIsoWeek(date: Date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   return { year: d.getUTCFullYear(), week: getWeekNumber(date) };
+}
+
+// Trekningsdag ut fra rundenavnet «Uke N, ÅÅÅÅ»: fredagen i den ISO-uken,
+// f.eks. «fredag 27. november». Regnes i UTC så serverens tidssone ikke
+// flytter datoen. Null hvis navnet ikke følger mønsteret.
+function formatDrawDate(roundName: string): string | null {
+  const match = roundName.match(/Uke (\d+),\s*(\d{4})/);
+  if (!match) return null;
+  const week = Number(match[1]);
+  const year = Number(match[2]);
+  // 4. januar er alltid i ISO-uke 1
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const monday1 = Date.UTC(year, 0, 4 - ((jan4.getUTCDay() || 7) - 1));
+  const friday = new Date(monday1 + ((week - 1) * 7 + 4) * 86_400_000);
+  return new Intl.DateTimeFormat('nb-NO', {
+    weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
+  }).format(friday);
 }
 
 // Hjelpefunksjon for ukenummer

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Wine as WineIcon, ChevronRight, Sparkles } from 'lucide-react';
+import { Wine as WineIcon, ChevronRight } from 'lucide-react';
 import WineDialog from './WineDialog';
 
 type WineItem = { id: number; info: string; imageUrl: string | null; productCode: string | null };
@@ -17,11 +17,9 @@ function splitInfo(info: string) {
 // Før admin har bekreftet vinene, vises de som et forslag.
 export default function WineShowcase({
   wines,
-  summary,
   confirmed = true,
 }: {
   wines: WineItem[];
-  summary?: string | null;
   confirmed?: boolean;
 }) {
   const [open, setOpen] = useState<WineItem | null>(null);
@@ -70,14 +68,6 @@ Trykk for mer info`}
           );
         })}
       </div>
-
-      {/* AI-oppsummering av ukens viner */}
-      {summary && (
-        <p className="mt-4 wine-card-alpha border border-dashed wine-border-strong rounded-lg px-4 py-3.5 flex gap-2.5 items-start wine-text-muted text-[13px] italic leading-relaxed">
-          <Sparkles aria-hidden className="w-4 h-4 shrink-0 mt-0.5 wine-accent not-italic" />
-          <span>{summary}</span>
-        </p>
-      )}
 
       {open && <WineDialog wine={{ ...open, wineId: open.id }} onClose={() => setOpen(null)} />}
     </section>

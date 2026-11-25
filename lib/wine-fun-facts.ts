@@ -54,6 +54,10 @@ export const WINE_FUN_FACTS = [
 'Chianti Classico kjennes igjen på den svarte hanen (gallo nero) på flasken.',
 ];
 
-export function pickFunFact(): string {
-  return WINE_FUN_FACTS[Math.floor(Math.random() * WINE_FUN_FACTS.length)];
+// Tilfeldig indeks i listen, ulik `except` (så «trekk en ny» alltid gir en annen).
+export function pickFunFactIndex(except?: number): number {
+  const n = WINE_FUN_FACTS.length;
+  if (except === undefined || n < 2) return Math.floor(Math.random() * n);
+  const i = Math.floor(Math.random() * (n - 1));
+  return i >= except ? i + 1 : i;
 }

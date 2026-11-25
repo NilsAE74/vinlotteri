@@ -88,6 +88,16 @@ body {
 .wine-link { color: var(--wine-text-muted); transition: color .15s; }
 .wine-link:hover { color: var(--wine-accent); }
 
+/* Fun fact: ny tekst tones inn når man trekker en ny (ikke ved sidelasting). */
+@keyframes fact-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fact-in { animation: fact-in 250ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .fact-in { animation: none; }
+}
+
 /* Trekningsvisningene (hjul, spilleautomat, klassisk, rutenett) deler denne
    knappen og vinnerkortet – felles klasser i stedet for firedobbel kopi. */
 .wine-cta {

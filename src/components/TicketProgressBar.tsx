@@ -37,16 +37,13 @@ export default function TicketProgressBar({ taken, total }: Props) {
       {/* Bar track */}
       <div className="relative h-2.5 rounded-md overflow-hidden wine-card-bg border wine-border-faint">
         <div
-          className="h-full rounded-md transition-all duration-700 ease-out"
-          style={{
-            width: `${barPct}%`,
-            background: 'linear-gradient(90deg, var(--wine-burgundy) 0%, var(--wine-accent) 100%)',
-          }}
+          className="h-full rounded-md wine-accent-bg transition-all duration-700 ease-out motion-reduce:transition-none"
+          style={{ width: `${barPct}%` }}
         />
       </div>
 
       {/* Motivation text */}
-      <p className="text-center text-xs wine-text-muted mt-2 italic">
+      <p className="text-xs wine-text-muted mt-2 italic">
         {getMotivation(pct)}
       </p>
     </div>

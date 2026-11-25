@@ -56,7 +56,7 @@ Pure modules (no side effects, usable on client and server): `lib/wine-details-m
 
 ### Pages
 
-- `app/page.tsx` — Public lottery page. Fetches active round, tickets, wines and cake list; renders countdown, wine showcase, AI summary, fun fact, progress bar, cake timeline and `<LotteryGrid>`.
+- `app/page.tsx` — Public lottery page. Fetches active round, tickets, wines and cake list; renders a header stamp with the draw date, fun fact + AI summary (left column), wine showcase + cake timeline (right column), progress bar and `<LotteryGrid>`.
 - `app/vinnerhistorikk/page.tsx` — Public winner history and luck stats.
 - `app/admin/page.tsx` — Admin panel (cookie-authenticated): round management, lock/unlock, ticket bookings, wine list and shopping planner, AI summary, stats, test tools.
 - `app/admin/trekning/page.tsx` — Big-screen live draw. View chosen with `?visning=`: `rutenett` (default), `automat`, `lykkehjul`, `klassisk`.
@@ -68,7 +68,7 @@ Public page:
 - `TicketDialog.tsx` — Purchase form (5 kr per ticket), Zod validation, then Vipps payment link/QR.
 - `TicketProgressBar.tsx` — Share of tickets sold, with motivational messages.
 - `WineShowcase.tsx`, `WineDialog.tsx`, `WineLogo.tsx` — This week's wines and a detail dialog with Vinmonopolet info.
-- `CountdownTimer.tsx`, `FunFactBox.tsx`, `KakeTidslinje.tsx` (cake-baker timeline).
+- `FunFactBox.tsx` (with "Trekk en ny" to draw another fact), `WineSummaryBox.tsx` (AI summary), `KakeTidslinje.tsx` (cake-baker timeline), `Perforation.tsx` (section divider).
 
 Draw views (server picks the winner *before* the animation starts; the animation only reveals it):
 - `GridDrawReveal.tsx` (+ `drawOrder.ts`) — tickets are extinguished until only the winner remains.
