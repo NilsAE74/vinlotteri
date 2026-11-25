@@ -7,8 +7,9 @@ import { fireConfetti, playWinSound, speakWinner } from './drawEffects';
 import { eliminationOrder, eliminationTimes } from './drawOrder';
 
 // Trekningsvisning: alle 200 lodd vises i et rutenett, og loddene i potten
-// slukkes gradvis til bare vinneren lyser. Kun solgte lodd er med i potten;
-// usolgte vises dempet.
+// slukkes gradvis til bare vinneren lyser. Med onlySold (standard) er kun
+// solgte lodd med i potten og usolgte vises dempet; uten er alle lodd med.
+// Solgte lodd viser bare eierens navn, usolgte viser nummeret.
 //
 // Serveren trekker vinneren FØR animasjonen starter. Animasjonen er bare
 // et show som alltid ender på loddet serveren valgte.
@@ -24,9 +25,11 @@ const FINAL_COUNT = 3;
 export default function GridDrawReveal({
   tickets,
   eligibleNumbers,
+  onlySold = true,
 }: {
   tickets: GridTicket[];
   eligibleNumbers: number[];
+  onlySold?: boolean;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('idle');
@@ -66,7 +69,7 @@ export default function GridDrawReveal({
 
     let result: Awaited<ReturnType<typeof drawWinnerAction>>;
     try {
-      result = await drawWinnerAction({ onlySold: true }); // Kun solgte lodd
+      result = await drawWinnerAction({ onlySold });
     } catch {
       result = { success: false, message: 'Noe gikk galt under trekningen. Prøv igjen.' };
     }
@@ -126,11 +129,13 @@ export default function GridDrawReveal({
 
   return (
     <div className="w-full flex flex-col items-center">
-      <div className="relative w-full">
+      {/* Samme ramme som loddboken på forsiden */}
+      <div className="relative w-full grid-wrapper rounded-xl border p-1">
         {/* Rutenettet */}
         {/* På md+ er det 20 kolonner x 10 rader, og høyden tilpasses skjermen slik at
-            alle 200 lodd alltid er synlige uten scrolling */}
-        <div className="grid grid-cols-10 md:grid-cols-20 md:grid-rows-10 gap-1 md:gap-1.5 w-full md:h-[max(20rem,calc(100vh-22rem))]">
+            alle 200 lodd alltid er synlige uten scrolling (25rem = toppstripe,
+            mastetopp, perforering, status og knapp) */}
+        <div className="grid grid-cols-10 md:grid-cols-20 md:grid-rows-10 gap-1 md:gap-1.5 w-full md:h-[max(20rem,calc(100vh-25rem))]">
           {tickets.map(t => (
             <Cell
               key={t.number}
@@ -200,8 +205,9 @@ function shortName(name: string) {
   return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
 }
 
-// Fargene følger salgssiden: ledige lodd = «ticket-available» med gullnummer,
-// solgte lodd = «ticket-taken» med navn. I trekningen vises alltid nummeret.
+// Fargene følger salgssiden: ledige lodd = «ticket-available» med nummer,
+// solgte lodd = «ticket-taken» med bare eierens navn (nummeret står i tooltip
+// og på vinnerkortet).
 function Cell({ ticket, state }: { ticket: GridTicket; state: CellState }) {
   const sold = !!ticket.ownerName;
   const base = sold ? 'ticket-taken' : 'ticket-available';
@@ -225,22 +231,19 @@ function Cell({ ticket, state }: { ticket: GridTicket; state: CellState }) {
   return (
     <div
       className={`min-h-10 md:min-h-0 flex flex-col items-center justify-center rounded border overflow-hidden transition-all duration-500 ${look[state]}`}
-      title={ticket.ownerName ?? 'Ikke solgt'}
+      title={`${ticket.number}: ${ticket.ownerName ?? 'Ikke solgt'}`}
     >
-      <span
-        className={`font-mono font-bold leading-none text-sm lg:text-base 2xl:text-xl ${
-          gold ? '' : sold ? 'wine-text' : 'wine-text-muted'
-        }`}
-      >
-        {ticket.number}
-      </span>
-      {sold && (
+      {sold ? (
         <span
-          className={`hidden lg:block mt-1 leading-tight truncate w-full px-0.5 text-center text-[11px] 2xl:text-[13px] ${
-            gold ? 'opacity-80' : 'wine-text-muted'
+          className={`leading-tight truncate w-full px-0.5 text-center font-medium text-[10px] sm:text-xs lg:text-[13px] 2xl:text-base ${
+            gold ? '' : 'wine-text'
           }`}
         >
           {shortName(ticket.ownerName!)}
+        </span>
+      ) : (
+        <span className={`font-mono font-bold leading-none text-sm lg:text-base 2xl:text-xl ${gold ? '' : 'wine-text-muted'}`}>
+          {ticket.number}
         </span>
       )}
     </div>

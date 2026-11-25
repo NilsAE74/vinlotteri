@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Lock, Unlock, Trophy, LayoutGrid, CircleDot, Dices, FerrisWheel } from 'lucide-react';
+import { ArrowLeft, Lock, Unlock, Trophy, LayoutGrid, Grid3x3, CircleDot, Dices, FerrisWheel } from 'lucide-react';
 import AdminLogin from '@/src/components/AdminLogin';
 import WinnerReveal from '@/src/components/WinnerReveal';
 import GridDrawReveal from '@/src/components/GridDrawReveal';
@@ -7,12 +7,16 @@ import SlotDrawReveal from '@/src/components/SlotDrawReveal';
 import WheelDrawReveal from '@/src/components/WheelDrawReveal';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import FullscreenButton from '@/src/components/FullscreenButton';
+import WineLogo from '@/src/components/WineLogo';
+import Perforation from '@/src/components/Perforation';
+import RoundStamp from '@/src/components/RoundStamp';
 import { getAdminPageData, toggleRoundLock } from '@/lib/admin-actions';
 import { isAdminAuthenticated, getAdminTheme } from '@/lib/admin-auth';
 
 // Trekningsvisninger, valgt med ?visning=…
 const VIEWS = [
   { id: 'rutenett', label: 'Rutenett', icon: LayoutGrid }, // standard
+  { id: 'alle-lodd', label: 'Alle lodd', icon: Grid3x3 },
   { id: 'automat', label: 'Spilleautomat', icon: Dices },
   { id: 'lykkehjul', label: 'Lykkehjul', icon: FerrisWheel },
   { id: 'klassisk', label: 'Klassisk', icon: CircleDot },
@@ -25,17 +29,19 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
 
   const requested = (await searchParams).visning;
   const view: View = VIEWS.some(v => v.id === requested) ? (requested as View) : 'rutenett';
-  const classic = view === 'klassisk';
+  // Klassisk og «Alle lodd» trekker blant alle lodd, også usolgte
+  const allTickets = view === 'klassisk' || view === 'alle-lodd';
+  const isGrid = view === 'rutenett' || view === 'alle-lodd';
 
   const theme = await getAdminTheme();
   const { activeRound, eligibleTickets, takenCount } = await getAdminPageData();
 
   // Dagens vinnere (usolgte lodd som ble trukket telles ikke).
   // Trekningsrekkefølgen lagres ikke, så de sorteres etter loddnummer.
-  // Rutenett, spilleautomat og lykkehjul trekker kun blant solgte lodd, klassisk visning blant alle
-  const pot = classic ? eligibleTickets : eligibleTickets.filter(t => t.isTaken && t.ownerName);
-  // «Dagens vinnere» vises ikke i rutenettet, som uthever vinnerne på brettet
-  const showWinners = view !== 'rutenett';
+  // Rutenett, spilleautomat og lykkehjul trekker kun blant solgte lodd
+  const pot = allTickets ? eligibleTickets : eligibleTickets.filter(t => t.isTaken && t.ownerName);
+  // «Dagens vinnere» vises ikke i rutenettene, som uthever vinnerne på brettet
+  const showWinners = !isGrid;
 
   const winners = (activeRound?.tickets ?? [])
     .filter(t => t.hasWon && t.ownerName)
@@ -90,21 +96,21 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
           Ingen aktiv runde.
         </div>
       ) : (
-        <div className={`flex-1 grid grid-cols-1 gap-8 ${showWinners ? 'xl:grid-cols-[1fr_28rem]' : ''} ${view === 'rutenett' ? 'p-4 md:p-6' : 'p-6 md:p-10'}`}>
+        <div className={`flex-1 flex flex-col ${isGrid ? 'px-4 md:px-6 pt-4 md:pt-5' : 'px-6 md:px-10 pt-6'}`}>
+        {/* Samme mastetopp som forsiden: ordmerke + loddbok-stempel */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <WineLogo aria-hidden className="w-8 h-8 wine-accent" />
+            <h1 className="font-serif text-4xl font-semibold tracking-tight wine-text">Vinlotteri</h1>
+          </div>
+          <RoundStamp roundName={activeRound.name ?? ''} />
+        </div>
+
+        <Perforation />
+
+        <div className={`flex-1 grid grid-cols-1 gap-8 ${showWinners ? 'xl:grid-cols-[1fr_28rem]' : ''} ${isGrid ? 'pb-4 md:pb-6' : 'pb-6 md:pb-10'}`}>
           {/* Trekning */}
           <section className="flex flex-col items-center justify-center text-center">
-            {view === 'klassisk' || view === 'automat' ? (
-              <>
-                <h1 className="text-5xl md:text-6xl font-serif wine-accent mb-2">Vinlotteri</h1>
-                <p className="wine-text-muted text-xl mb-10">{activeRound.name}</p>
-              </>
-            ) : (
-              // Kompakt overskrift, så rutenettet/hjulet får mest mulig plass
-              <h1 className="text-3xl md:text-4xl font-serif wine-accent mb-4">
-                Vinlotteri <span className="wine-text-muted text-xl md:text-2xl">· {activeRound.name}</span>
-              </h1>
-            )}
-
             {view === 'klassisk' ? (
               <WinnerReveal takenTickets={eligibleTickets} large />
             ) : view === 'automat' ? (
@@ -113,28 +119,31 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
               <WheelDrawReveal pot={pot.map(t => ({ number: t.number, ownerName: t.ownerName! }))} />
             ) : (
               <GridDrawReveal
+                key={view} // eget brett per visning, så en trekning ikke henger igjen ved bytte
                 tickets={[...activeRound.tickets]
                   .sort((a, b) => a.number - b.number)
                   .map(({ number, ownerName, hasWon }) => ({ number, ownerName, hasWon }))}
                 eligibleNumbers={pot.map(t => t.number)}
+                onlySold={!allTickets}
               />
             )}
 
-            <div className={`${view === 'rutenett' ? 'mt-2' : 'mt-6'} flex gap-10 text-lg`}>
-              <div className="wine-text-subtle">
-                Solgte lodd: <span className="wine-text font-bold">{takenCount}</span>
-              </div>
-              <div className="wine-text-subtle">
-                Igjen i potten: <span className="wine-text font-bold">{pot.length}</span>
-              </div>
+            {/* Samme ordlyd og stil som telleren over progress bar på forsiden */}
+            <div className={`${isGrid ? 'mt-2' : 'mt-6'} flex gap-10 text-lg wine-text-muted`}>
+              <span>
+                <span className="wine-accent font-semibold">{takenCount}</span> lodd solgt
+              </span>
+              <span>
+                <span className="wine-text font-semibold">{pot.length}</span> igjen i potten
+              </span>
             </div>
           </section>
 
           {/* Dagens vinnere – ikke i rutenettet, som uthever vinnerne på brettet */}
           {showWinners && (
-            <aside className="wine-card-alpha border wine-border-faint rounded-2xl p-6 self-start xl:sticky xl:top-6">
-              <h2 className="text-3xl font-serif wine-accent mb-6 flex items-center gap-3">
-                <Trophy className="w-7 h-7" /> Dagens vinnere
+            <aside className="wine-card-alpha border border-dashed wine-border-strong rounded-lg p-6 self-start xl:sticky xl:top-6">
+              <h2 className="text-3xl font-serif font-semibold tracking-tight wine-text mb-6 flex items-center gap-3">
+                <Trophy aria-hidden className="w-7 h-7 wine-accent" /> Dagens vinnere
               </h2>
               {winners.length === 0 ? (
                 <p className="wine-text-subtle text-lg">Ingen vinnere trukket ennå.</p>
@@ -158,6 +167,7 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
               )}
             </aside>
           )}
+        </div>
         </div>
       )}
     </main>

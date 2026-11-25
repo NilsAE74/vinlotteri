@@ -59,7 +59,7 @@ Pure modules (no side effects, usable on client and server): `lib/wine-details-m
 - `app/page.tsx` — Public lottery page. Fetches active round, tickets, wines and cake list; renders a header stamp with the draw date, fun fact + AI summary (left column), wine showcase + cake timeline (right column), progress bar and `<LotteryGrid>`.
 - `app/vinnerhistorikk/page.tsx` — Public winner history and luck stats.
 - `app/admin/page.tsx` — Admin panel (cookie-authenticated): round management, lock/unlock, ticket bookings, wine list and shopping planner, AI summary, stats, test tools.
-- `app/admin/trekning/page.tsx` — Big-screen live draw. View chosen with `?visning=`: `rutenett` (default), `automat`, `lykkehjul`, `klassisk`.
+- `app/admin/trekning/page.tsx` — Big-screen live draw. View chosen with `?visning=`: `rutenett` (default), `alle-lodd` (same grid, drawing among all tickets), `automat`, `lykkehjul`, `klassisk`.
 
 ### Key Components (`src/components/`)
 
@@ -68,10 +68,10 @@ Public page:
 - `TicketDialog.tsx` — Purchase form (5 kr per ticket), Zod validation, then Vipps payment link/QR.
 - `TicketProgressBar.tsx` — Share of tickets sold, with motivational messages.
 - `WineShowcase.tsx`, `WineDialog.tsx`, `WineLogo.tsx` — This week's wines and a detail dialog with Vinmonopolet info.
-- `FunFactBox.tsx` (with "Trekk en ny" to draw another fact), `WineSummaryBox.tsx` (AI summary), `KakeTidslinje.tsx` (cake-baker timeline), `Perforation.tsx` (section divider).
+- `FunFactBox.tsx` (with "Trekk en ny" to draw another fact), `WineSummaryBox.tsx` (AI summary), `KakeTidslinje.tsx` (cake-baker timeline), `Perforation.tsx` (section divider), `RoundStamp.tsx` (dashed round + draw-date stamp, also used on the draw page; date from `lib/draw-date.ts`).
 
 Draw views (server picks the winner *before* the animation starts; the animation only reveals it):
-- `GridDrawReveal.tsx` (+ `drawOrder.ts`) — tickets are extinguished until only the winner remains.
+- `GridDrawReveal.tsx` (+ `drawOrder.ts`) — tickets are extinguished until only the winner remains. Sold tickets show only the owner's name, unsold show the number.
 - `SlotDrawReveal.tsx` — slot machine with three reels.
 - `WheelDrawReveal.tsx` — wheel of fortune, one segment per participant sized by ticket share.
 - `WinnerReveal.tsx` — classic reveal.
@@ -86,7 +86,7 @@ Shared: `ThemeToggle.tsx`, `FullscreenButton.tsx`, `PendingSubmitButton.tsx` (di
 
 - Each round has exactly 200 tickets (1–200), 5 kr each, paid via Vipps outside the app.
 - A person cannot win twice in the same round (eligible pool excludes previous winners by `ownerName`).
-- Grid, slot and wheel views draw only among sold tickets (`onlySold`); the classic view draws among all tickets, including unsold.
+- The `rutenett`, slot and wheel views draw only among sold tickets (`onlySold`); the `alle-lodd` and classic views draw among all tickets, including unsold.
 - Locked rounds reject new bookings; lock before drawing.
 - Owner names are normalised through `NavneAlias`/`Ansatte` so the same person always gets the same name.
 - Wines added to a round are suggestions until the admin confirms them (`winesConfirmed`).
