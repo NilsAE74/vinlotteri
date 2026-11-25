@@ -21,7 +21,7 @@ type Segment = { name: string; count: number; start: number; end: number; color:
 const SPIN_MS = 8500; // Hvor lenge hjulet spinner
 const EXTRA_TURNS = 7; // Hele runder før det stopper
 const CARD_DELAY = 1200; // Fra hjulet stopper til vinnerkortet vises
-const COLORS = ['#7A2B35', '#5A2229', '#943440'];
+const COLORS = ['#722F37', '#4E1F26', '#8a3842'];
 
 // Hjulvinkel (grader, med klokka fra toppen) → punkt på sirkelen
 const point = (deg: number, r: number) => {
@@ -308,7 +308,7 @@ function SegmentShape({
           fontSize={fontSize}
           fontFamily="var(--font-fraunces), serif"
           fontWeight={700}
-          fill={highlight ? 'var(--wine-ink)' : '#F3ECE2'}
+          fill={highlight ? 'var(--wine-ink)' : '#F3E7E5'}
         >
           {label}
         </text>

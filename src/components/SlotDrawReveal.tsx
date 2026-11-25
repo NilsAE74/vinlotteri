@@ -252,7 +252,7 @@ function Reel({
       }`}
     >
       {state === 'idle' ? (
-        <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-7xl md:text-9xl xl:text-[10rem] leading-none text-[#1c1712]/30">
+        <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-7xl md:text-9xl xl:text-[10rem] leading-none text-[#1a0b0e]/30">
           –
         </div>
       ) : (
@@ -265,7 +265,7 @@ function Reel({
               key={i}
               style={{ height: `${FIELD}%` }}
               className={`flex items-center justify-center font-mono font-bold text-7xl md:text-9xl xl:text-[10rem] leading-none ${
-                isWinner ? 'text-[#7a2b35]' : 'text-[#1c1712]'
+                isWinner ? 'text-[#722f37]' : 'text-[#1a0b0e]'
               }`}
             >
               {n}

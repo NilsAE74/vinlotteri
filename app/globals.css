@@ -12,55 +12,46 @@
   --background: #ffffff;
   --foreground: #171717;
 
-  /* Fast mørk ink – samme i begge temaer. Brukes til tekst som ligger på en
-     messing-flate (knapper, vinnerfelt): --wine-bg er lys i lyst tema, så den
-     duger ikke til det. */
-  --wine-ink: #1c1712;
+  /* Messing og burgunder er identiske i begge temaer (se CLAUDE.md) – samme
+     fast ink til tekst som ligger på en messing-flate (knapper, vinnerfelt). */
+  --wine-ink: #1a0b0e;
+  --wine-accent: #d4af37;
+  --wine-accent-soft: rgba(212, 175, 55, 0.5);
+  --wine-burgundy: #722f37;
+  --wine-burgundy-hover: #8a3842;
+  --wine-border-strong: rgba(212, 175, 55, 0.3);
 
-  /* Vintema – mørk (standard). Loddbok-palett: varm nesten-svart, dempet
-     messing som aksent (brukes til resultater/live-tilstander, ikke som ramme
-     rundt alt), og en mykere burgunder enn før. */
-  --wine-bg: #1c1712;
-  --wine-card: #241d16;
-  --wine-card-alpha: rgba(36, 29, 22, 0.72);
-  --wine-text: #f3ece2;
-  --wine-text-muted: #b9ac9b;
-  --wine-text-subtle: #8a7d6e;
-  --wine-border-faint: rgba(243, 236, 226, 0.12);
-  --wine-border-strong: rgba(243, 236, 226, 0.24);
-  --wine-burgundy: #7a2b35;
-  --wine-burgundy-hover: #8f3540;
-  --wine-accent: #c79a3e;
-  --wine-accent-soft: rgba(199, 154, 62, 0.5);
-  --ticket-available-bg: rgba(243, 236, 226, 0.04);
-  --ticket-available-border: rgba(243, 236, 226, 0.16);
-  --ticket-taken-bg: rgba(0, 0, 0, 0.25);
-  --ticket-taken-border: var(--wine-border-faint);
-  --grid-wrapper-bg: rgba(243, 236, 226, 0.03);
-  --grid-wrapper-border: var(--wine-border-faint);
+  /* Vintema – mørk (standard). */
+  --wine-bg: #0d0506;
+  --wine-card: #1a0b0e;
+  --wine-card-alpha: rgba(26, 11, 14, 0.8);
+  --wine-text: #ffffff;
+  --wine-text-muted: #9ca3af;
+  --wine-text-subtle: #6b7280;
+  --wine-border-faint: rgba(255, 255, 255, 0.05);
+  --ticket-available-bg: rgba(42, 18, 22, 0.6);
+  --ticket-available-border: rgba(114, 47, 55, 0.3);
+  --ticket-taken-bg: #111111;
+  --ticket-taken-border: #333333;
+  --grid-wrapper-bg: rgba(255, 255, 255, 0.05);
+  --grid-wrapper-border: rgba(255, 255, 255, 0.1);
 }
 
-/* Vintema – lys. Samme struktur, lysere loddpapir-bakgrunn og en messing-
-   nyanse tonet for kontrast mot hvitt i stedet for mot nesten-svart. */
+/* Vintema – lys. */
 [data-theme="light"] {
-  --wine-bg: #f8f2e7;
+  --wine-bg: #fdf6f0;
   --wine-card: #ffffff;
-  --wine-card-alpha: rgba(255, 255, 255, 0.86);
-  --wine-text: #2b2016;
-  --wine-text-muted: #6b5842;
-  --wine-text-subtle: #9c8b74;
-  --wine-border-faint: rgba(43, 32, 22, 0.1);
-  --wine-border-strong: rgba(43, 32, 22, 0.22);
-  --wine-burgundy: #8c3b46;
-  --wine-burgundy-hover: #9c4b56;
-  --wine-accent: #b9893a;
-  --wine-accent-soft: rgba(185, 137, 58, 0.5);
-  --ticket-available-bg: rgba(43, 32, 22, 0.035);
-  --ticket-available-border: rgba(43, 32, 22, 0.16);
-  --ticket-taken-bg: rgba(43, 32, 22, 0.06);
-  --ticket-taken-border: var(--wine-border-faint);
-  --grid-wrapper-bg: rgba(43, 32, 22, 0.02);
-  --grid-wrapper-border: var(--wine-border-faint);
+  --wine-card-alpha: rgba(255, 255, 255, 0.9);
+  --wine-text: #1a0507;
+  --wine-text-muted: #6b7280;
+  --wine-text-subtle: #9ca3af;
+  --wine-border-faint: rgba(0, 0, 0, 0.07);
+  --ticket-available-bg: #fdf0f0;
+  --ticket-available-border: rgba(114, 47, 55, 0.35);
+  --ticket-taken-bg: #ede4e4;
+  --ticket-taken-border: #c9aeae;
+  --grid-wrapper-bg: rgba(255, 255, 255, 0.75);
+  --grid-wrapper-border: rgba(114, 47, 55, 0.2);
 }
 
 body {
@@ -114,21 +105,21 @@ body {
 /* Spilleautomaten: huset og trommelen er et fast fysisk objekt (samme farge i
    begge temaer, som et ekte skap), mens hjul-rammenes farge er en tilstand
    (spinner/stoppet/vinner) og følger temaets messing-aksent. */
-.automat-shell { background: linear-gradient(to bottom, #241d16, #1c1712); border-color: #7a2b35; box-shadow: 0 0 60px rgba(122, 43, 53, 0.45); }
-.reel-drum { background: linear-gradient(to bottom, #f3ece2, #ffffff, #f3ece2); }
-.reel-frame { border-color: #7a2b35; }
+.automat-shell { background: linear-gradient(to bottom, #2a1216, #0d0506); border-color: #722f37; box-shadow: 0 0 60px rgba(114, 47, 55, 0.45); }
+.reel-drum { background: linear-gradient(to bottom, #e8e0d8, #ffffff, #e8e0d8); }
+.reel-frame { border-color: #722f37; }
 .reel-frame-stopped { border-color: var(--wine-accent); }
 .reel-frame-winner { border-color: var(--wine-accent); box-shadow: 0 0 40px var(--wine-accent-soft); }
 
 /* Lykkehjulet: bakplaten er fast mørk (det fysiske hjulet), messing-trimmen
    (ring, nav, piler) følger temaets aksent. */
-.wheel-plate { fill: #1c1712; }
+.wheel-plate { fill: #1a0b0e; }
 .wheel-trim { fill: var(--wine-accent); }
 .wheel-trim-stroke { stroke: var(--wine-accent); }
 
 /* Klassisk visning: sirkelen er et fast lampehus (som automaten/hjulet) til
    den tennes i messing når en vinner er trukket. */
-.winner-ring { background-color: var(--wine-ink); border-color: #7a2b35; }
+.winner-ring { background-color: var(--wine-ink); border-color: #722f37; }
 .winner-ring-active {
   border-color: var(--wine-accent);
   background-color: color-mix(in srgb, var(--wine-accent) 12%, transparent);
@@ -160,9 +151,9 @@ body {
 
 /* Navnet under hjulene blinker opp ved hvert nytt lodd */
 @keyframes name-flash {
-  from { opacity: 0.35; text-shadow: 0 0 0 rgba(199, 154, 62, 0); }
-  30%  { opacity: 1;    text-shadow: 0 0 18px rgba(199, 154, 62, 0.8); }
-  to   { opacity: 0.85; text-shadow: 0 0 6px rgba(199, 154, 62, 0.3); }
+  from { opacity: 0.35; text-shadow: 0 0 0 rgba(212, 175, 55, 0); }
+  30%  { opacity: 1;    text-shadow: 0 0 18px rgba(212, 175, 55, 0.8); }
+  to   { opacity: 0.85; text-shadow: 0 0 6px rgba(212, 175, 55, 0.3); }
 }
 .name-flash { animation: name-flash 300ms ease-out; }
 
@@ -191,14 +182,14 @@ body {
 
 /* Gløden ligger i et eget lag bak innholdet og animerer bare opacity,
    så teksten på kortet ikke tegnes på nytt og står helt stille. */
-.kake-focus { box-shadow: 0 0 12px rgba(199, 154, 62, 0.25); }
+.kake-focus { box-shadow: 0 0 12px rgba(212, 175, 55, 0.25); }
 .kake-focus::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  box-shadow: 0 0 28px rgba(199, 154, 62, 0.5);
+  box-shadow: 0 0 28px rgba(212, 175, 55, 0.5);
   pointer-events: none;
   opacity: 0;
   animation: kake-glow 3s ease-in-out infinite;
