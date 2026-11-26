@@ -9,7 +9,9 @@ import { eliminationOrder, eliminationTimes } from './drawOrder';
 // Trekningsvisning: alle 200 lodd vises i et rutenett, og loddene i potten
 // slukkes gradvis til bare vinneren lyser. Med onlySold (standard) er kun
 // solgte lodd med i potten og usolgte vises dempet; uten er alle lodd med.
-// Solgte lodd viser bare eierens navn, usolgte viser nummeret.
+// Solgte lodd viser bare eierens navn, usolgte viser nummeret. Med showOdds
+// står eierens sjanse for å vinne under navnet: andelen av loddene som
+// fortsatt er i potten. Sjansen regnes om etter hvert som lodd slukkes.
 //
 // Serveren trekker vinneren FØR animasjonen starter. Animasjonen er bare
 // et show som alltid ender på loddet serveren valgte.
@@ -26,10 +28,12 @@ export default function GridDrawReveal({
   tickets,
   eligibleNumbers,
   onlySold = true,
+  showOdds = false,
 }: {
   tickets: GridTicket[];
   eligibleNumbers: number[];
   onlySold?: boolean;
+  showOdds?: boolean;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('idle');
@@ -125,7 +129,18 @@ export default function GridDrawReveal({
     setEliminated(new Set());
   };
 
-  const remaining = eligibleNumbers.filter(n => !eliminated.has(n)).length;
+  const remainingNumbers = eligibleNumbers.filter(n => !eliminated.has(n));
+  const remaining = remainingNumbers.length;
+
+  // Hver eiers andel av loddene som er igjen i potten
+  const oddsByOwner = new Map<string, number>();
+  if (showOdds && remaining > 0) {
+    const ownerOf = new Map(tickets.map(t => [t.number, t.ownerName?.trim() ?? null]));
+    for (const n of remainingNumbers) {
+      const owner = ownerOf.get(n);
+      if (owner) oddsByOwner.set(owner, (oddsByOwner.get(owner) ?? 0) + 1 / remaining);
+    }
+  }
 
   return (
     <div className="w-full flex flex-col items-center">
@@ -136,23 +151,21 @@ export default function GridDrawReveal({
             alle 200 lodd alltid er synlige uten scrolling (25rem = toppstripe,
             mastetopp, perforering, status og knapp) */}
         <div className="grid grid-cols-10 md:grid-cols-20 md:grid-rows-10 gap-1 md:gap-1.5 w-full md:h-[max(20rem,calc(100vh-25rem))]">
-          {tickets.map(t => (
-            <Cell
-              key={t.number}
-              ticket={t}
-              state={
-                winner?.number === t.number
-                  ? 'winner'
-                  : !eligible.has(t.number)
-                    ? 'out'
-                    : eliminated.has(t.number) || phase === 'revealed'
-                      ? 'eliminated'
-                      : phase === 'final'
-                        ? 'finalist'
-                        : 'pool'
-              }
-            />
-          ))}
+          {tickets.map(t => {
+            const state: CellState =
+              winner?.number === t.number
+                ? 'winner'
+                : !eligible.has(t.number)
+                  ? 'out'
+                  : eliminated.has(t.number) || phase === 'revealed'
+                    ? 'eliminated'
+                    : phase === 'final'
+                      ? 'finalist'
+                      : 'pool';
+            const inPool = state === 'pool' || state === 'finalist';
+            const odds = inPool && t.ownerName ? oddsByOwner.get(t.ownerName.trim()) : undefined;
+            return <Cell key={t.number} ticket={t} state={state} odds={odds} />;
+          })}
         </div>
 
         {/* Vinnerkort – z-50 så det alltid ligger foran loddene (som har z-10/z-20) */}
@@ -205,10 +218,17 @@ function shortName(name: string) {
   return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
 }
 
+// Sjanse som prosent med norsk tallformat: «0,5 %», «4,2 %», «12 %»
+function formatOdds(share: number) {
+  const pct = share * 100;
+  const digits = pct < 10 ? 1 : 0;
+  return `${pct.toLocaleString('nb-NO', { minimumFractionDigits: digits, maximumFractionDigits: digits })} %`;
+}
+
 // Fargene følger salgssiden: ledige lodd = «ticket-available» med nummer,
 // solgte lodd = «ticket-taken» med bare eierens navn (nummeret står i tooltip
 // og på vinnerkortet).
-function Cell({ ticket, state }: { ticket: GridTicket; state: CellState }) {
+function Cell({ ticket, state, odds }: { ticket: GridTicket; state: CellState; odds?: number }) {
   const sold = !!ticket.ownerName;
   const base = sold ? 'ticket-taken' : 'ticket-available';
 
@@ -231,16 +251,25 @@ function Cell({ ticket, state }: { ticket: GridTicket; state: CellState }) {
   return (
     <div
       className={`min-h-10 md:min-h-0 flex flex-col items-center justify-center rounded border overflow-hidden transition-all duration-500 ${look[state]}`}
-      title={`${ticket.number}: ${ticket.ownerName ?? 'Ikke solgt'}`}
+      title={`${ticket.number}: ${ticket.ownerName ?? 'Ikke solgt'}${
+        odds !== undefined ? ` (${formatOdds(odds)} sjanse)` : ''
+      }`}
     >
       {sold ? (
-        <span
-          className={`leading-tight truncate w-full px-0.5 text-center font-medium text-[10px] sm:text-xs lg:text-[13px] 2xl:text-base ${
-            gold ? '' : 'wine-text'
-          }`}
-        >
-          {shortName(ticket.ownerName!)}
-        </span>
+        <>
+          <span
+            className={`leading-tight truncate w-full px-0.5 text-center font-medium text-[10px] sm:text-xs lg:text-[13px] 2xl:text-base ${
+              gold ? '' : 'wine-text'
+            }`}
+          >
+            {shortName(ticket.ownerName!)}
+          </span>
+          {odds !== undefined && (
+            <span className="leading-none mt-0.5 tabular-nums wine-text-muted text-[9px] sm:text-[10px] lg:text-[11px] 2xl:text-sm">
+              {formatOdds(odds)}
+            </span>
+          )}
+        </>
       ) : (
         <span className={`font-mono font-bold leading-none text-sm lg:text-base 2xl:text-xl ${gold ? '' : 'wine-text-muted'}`}>
           {ticket.number}

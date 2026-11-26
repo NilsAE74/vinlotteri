@@ -63,7 +63,7 @@ Pure modules (no side effects, usable on client and server): `lib/wine-details-m
 - `app/vinnerhistorikk/page.tsx` — Public winner history and luck stats.
 - `app/quiz/page.tsx` — Weekly quiz (`QuizGame`, `QuizTopList`): five questions, 20 s each, result as a class from the 1855 Bordeaux classification. The front page shows the top 5 and links here; the purchase dialog offers it after a booking.
 - `app/admin/page.tsx` — Admin panel (cookie-authenticated): round management, lock/unlock, ticket bookings, wine list and shopping planner, AI summary, stats, test tools.
-- `app/admin/trekning/page.tsx` — Big-screen live draw. View chosen with `?visning=`: `rutenett` (default), `alle-lodd` (same grid, drawing among all tickets), `automat`, `lykkehjul`, `klassisk`.
+- `app/admin/trekning/page.tsx` — Big-screen live draw. View chosen with `?visning=`: `rutenett` (default), `alle-lodd` (same grid, drawing among all tickets), `automat`, `lykkehjul`, `klassisk`. In the grid views, `?odds=vis` (toggle in the toolbar) shows each owner's win chance under their name.
 
 ### Key Components (`src/components/`)
 
