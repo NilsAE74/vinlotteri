@@ -16,6 +16,7 @@ model LotteryRound {
   aiSummary String?  // Kort oppsummering av ukens viner, laget av AI (Gemini). Kan redigeres i admin
   winesConfirmed Boolean @default(false) // Admin har bekreftet at ukens viner er de riktige (ellers bare forslag)
   quizQuestionIds String[] @default([]) // Ukens quizspørsmål (QuizSporsmal.id), trukket tilfeldig første gang noen starter quizen
+  quizBonusGiven  Boolean  @default(false) // Bonusloddene til topp 3 i quizen er delt ut (skjer når salget stenges)
   createdAt DateTime @default(now())
   tickets   Ticket[]
   wines     Wine[]
@@ -40,6 +41,7 @@ model Ticket {
   ownerName String?
   isTaken   Boolean  @default(false)
   hasWon    Boolean  @default(false)
+  isBonus   Boolean  @default(false) // Gratis bonuslodd til topp 3 i quizen (fra 2027), ikke betalt
 
   // Relasjon til runden
   roundId   Int

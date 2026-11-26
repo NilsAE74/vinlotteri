@@ -13,6 +13,7 @@ import FunFactBox from '@/src/components/FunFactBox';
 import WineSummaryBox from '@/src/components/WineSummaryBox';
 import { pickFunFactIndex } from '@/lib/wine-fun-facts';
 import { getFunFacts } from '@/lib/quiz-bank';
+import { bonusActive } from '@/lib/quiz-season';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import TicketProgressBar from '@/src/components/TicketProgressBar';
 import KakeTidslinje, { type KakeUke } from '@/src/components/KakeTidslinje';
@@ -150,6 +151,9 @@ export default async function Home() {
                 <p className="wine-text-muted text-[13.5px] leading-relaxed">
                   Fem spørsmål om vin for dem som har kjøpt lodd. Ingen har svart ennå denne uka.
                 </p>
+              )}
+              {bonusActive(activeRound.name) && (
+                <p className="wine-text-subtle text-xs">De tre beste får 3, 2 og 1 ekstra lodd i trekningen.</p>
               )}
               {!activeRound.isLocked && (
                 <Link href="/quiz" className="wine-link text-[13.5px] self-start underline underline-offset-4">

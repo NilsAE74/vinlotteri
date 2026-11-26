@@ -101,7 +101,7 @@ export default async function AdminPage() {
               <TicketBookingsEditor
                 tickets={activeRound.tickets
                   .filter(t => t.isTaken)
-                  .map(({ id, number, ownerName, hasWon }) => ({ id, number, ownerName, hasWon }))}
+                  .map(({ id, number, ownerName, hasWon, isBonus }) => ({ id, number, ownerName, hasWon, isBonus }))}
               />
             </div>
           )}

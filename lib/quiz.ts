@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import type { QuizAttempt } from '@prisma/client';
 import { prisma } from './prisma';
 import { getActiveQuestionIds, getQuestion, type QuizQuestion } from './quiz-bank';
+import { QUIZ_BONUS, bonusActive } from './quiz-season';
 
 export const QUESTIONS_PER_QUIZ = 5;
 export const SECONDS_PER_QUESTION = 20; // Samme som i src/components/QuizGame.tsx
@@ -27,7 +28,8 @@ const TOP_COUNT = 5;
 
 export type QuizQuestionView = { index: number; total: number; text: string; options: string[]; secondsLeft: number };
 export type QuizFeedback = { index: number; total: number; text: string; options: string[]; chosen: number; correct: number; fact: string };
-export type LeaderRow = { rank: number; name: string; score: number; className: string; seconds: number; me: boolean };
+// bonus = bonuslodd i ukens trekning (topp 3 fra 2027)
+export type LeaderRow = { rank: number; name: string; score: number; className: string; seconds: number; me: boolean; bonus?: number };
 export type QuizResult = { score: number; total: number; className: string; seconds: number; rank: number; participants: number; top: LeaderRow[] };
 export type QuizState =
   | { kind: 'question'; question: QuizQuestionView; score: number }
@@ -183,8 +185,24 @@ export async function attemptState(attempt: QuizAttempt): Promise<QuizState> {
 
 // --- Toppliste ---
 
-function toRow(a: { name: string; score: number; timeMs: number }, rank: number, me: boolean): LeaderRow {
-  return { rank, name: a.name, score: a.score, className: quizClass(a.score), seconds: Math.round(a.timeMs / 100) / 10, me };
+function toRow(a: { name: string; score: number; timeMs: number }, rank: number, me: boolean, bonus?: Map<string, number>): LeaderRow {
+  const b = bonus?.get(a.name);
+  return { rank, name: a.name, score: a.score, className: quizClass(a.score), seconds: Math.round(a.timeMs / 100) / 10, me, ...(b ? { bonus: b } : {}) };
+}
+
+// Bonuslodd per navn i runden. Er de delt ut, er det loddene som faktisk ble
+// gitt; ellers det topp 3 får hvis salget stenges nå.
+async function bonusByName(roundId: number, all: { name: string }[]) {
+  const round = await prisma.lotteryRound.findUnique({ where: { id: roundId }, select: { name: true, quizBonusGiven: true } });
+  if (!round || !bonusActive(round.name)) return undefined;
+  const result = new Map<string, number>();
+  if (round.quizBonusGiven) {
+    const given = await prisma.ticket.groupBy({ by: ['ownerName'], where: { roundId, isBonus: true }, _count: true });
+    for (const g of given) if (g.ownerName) result.set(g.ownerName, g._count);
+  } else {
+    all.slice(0, QUIZ_BONUS.length).forEach((a, i) => result.set(a.name, QUIZ_BONUS[i]));
+  }
+  return result;
 }
 
 // Ferdige forsøk i runden, best først (flest riktige, deretter raskest)
@@ -198,13 +216,15 @@ async function finished(roundId: number) {
 
 export async function getTopList(roundId: number) {
   const all = await finished(roundId);
-  return { participants: all.length, top: all.slice(0, TOP_COUNT).map((a, i) => toRow(a, i + 1, false)) };
+  const bonus = await bonusByName(roundId, all);
+  return { participants: all.length, top: all.slice(0, TOP_COUNT).map((a, i) => toRow(a, i + 1, false, bonus)) };
 }
 
 async function resultFor(attempt: QuizAttempt): Promise<QuizResult> {
   const all = await finished(attempt.roundId);
+  const bonus = await bonusByName(attempt.roundId, all);
   const myIndex = all.findIndex(a => a.id === attempt.id);
-  const top = all.slice(0, TOP_COUNT).map((a, i) => toRow(a, i + 1, a.id === attempt.id));
+  const top = all.slice(0, TOP_COUNT).map((a, i) => toRow(a, i + 1, a.id === attempt.id, bonus));
   return {
     score: attempt.score,
     total: attempt.questionIds.length,
@@ -214,4 +234,43 @@ async function resultFor(attempt: QuizAttempt): Promise<QuizResult> {
     participants: all.length,
     top,
   };
+}
+
+// --- Bonuslodd (fra 2027) ---
+
+// Gir topp 3 i rundens quiz 3, 2 og 1 tilfeldige ledige lodd, merket som
+// bonuslodd. Kalles når salget stenges (toggleRoundLock), så quizen er
+// stengt og ingen kan kjøpe de ledige loddene i mellomtiden. Skjer bare én
+// gang per runde: gjenåpnes og stenges salget igjen, deles det ikke ut på nytt.
+// Er det for få ledige lodd, får de øverste først. Returnerer det som ble gitt.
+export async function awardQuizBonus(roundId: number): Promise<{ name: string; numbers: number[] }[]> {
+  const round = await prisma.lotteryRound.findUnique({ where: { id: roundId }, select: { name: true, quizBonusGiven: true } });
+  if (!round || round.quizBonusGiven || !bonusActive(round.name)) return [];
+  const top = (await finished(roundId)).slice(0, QUIZ_BONUS.length);
+
+  return prisma.$transaction(async tx => {
+    // Merk runden først, så to samtidige stenginger ikke begge deler ut
+    const claimed = await tx.lotteryRound.updateMany({ where: { id: roundId, quizBonusGiven: false }, data: { quizBonusGiven: true } });
+    if (claimed.count !== 1) return [];
+
+    const free = (await tx.ticket.findMany({ where: { roundId, isTaken: false }, select: { number: true } })).map(t => t.number);
+    for (let i = free.length - 1; i > 0; i--) {
+      const j = randomInt(i + 1);
+      [free[i], free[j]] = [free[j], free[i]];
+    }
+
+    const given: { name: string; numbers: number[] }[] = [];
+    let next = 0;
+    for (const [place, a] of top.entries()) {
+      const numbers = free.slice(next, next + QUIZ_BONUS[place]).sort((x, y) => x - y);
+      next += numbers.length;
+      if (numbers.length === 0) break;
+      await tx.ticket.updateMany({
+        where: { roundId, number: { in: numbers }, isTaken: false },
+        data: { ownerName: a.name, isTaken: true, isBonus: true },
+      });
+      given.push({ name: a.name, numbers });
+    }
+    return given;
+  });
 }

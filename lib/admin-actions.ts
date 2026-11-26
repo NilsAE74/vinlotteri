@@ -12,7 +12,7 @@ import {
 } from './admin-auth';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import { QUIZ_COOKIE } from './quiz';
+import { QUIZ_COOKIE, awardQuizBonus } from './quiz';
 import { formatWine, type WineSearchResult } from './wine-format';
 import { fetchWineDetails } from './wine-details-fetch';
 import { generateWeeklySummary } from './ai-comment';
@@ -75,7 +75,7 @@ export async function getAdminPageData() {
   return { 
     activeRound, 
     eligibleTickets, // Dette er "Potten" nå
-    takenCount: activeRound.tickets.filter((t) => t.isTaken).length // Totalt solgt (for statistikk)
+    takenCount: activeRound.tickets.filter((t) => t.isTaken && !t.isBonus).length // Totalt solgt (for statistikk); bonuslodd er ikke solgt
   };
 }
 
@@ -223,7 +223,11 @@ export async function toggleRoundLock() {
     data: { isLocked: !activeRound.isLocked }
   });
 
+  // Når salget stenges, er quizen ferdig: topp 3 får bonuslodd (fra 2027, bare én gang per runde)
+  if (!activeRound.isLocked) await awardQuizBonus(activeRound.id);
+
   revalidatePath('/');// Oppdaterer både Admin og brukernes forside
+  revalidatePath('/quiz');
 }
 
 // 4. VININFO
@@ -604,7 +608,7 @@ export async function releaseTickets(ticketIds: number[]) {
 
   const result = await prisma.ticket.updateMany({
     where: { id: { in: ticketIds }, roundId: activeRound.id, hasWon: false },
-    data: { ownerName: null, isTaken: false },
+    data: { ownerName: null, isTaken: false, isBonus: false },
   });
 
   revalidatePath('/');
@@ -725,7 +729,7 @@ export async function removeTestTickets() {
       roundId: activeRound.id,
       OR: TEST_LAST_NAMES.map(l => ({ ownerName: { endsWith: ` ${l}` } })),
     },
-    data: { ownerName: null, isTaken: false, hasWon: false },
+    data: { ownerName: null, isTaken: false, hasWon: false, isBonus: false },
   });
 
   revalidatePath('/');

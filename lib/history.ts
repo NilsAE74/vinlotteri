@@ -99,7 +99,8 @@ export async function getWinnerHistory() {
 export type LuckEntry = {
   name: string;
   rounds: number; // Runder med trekning personen har vært med i
-  tickets: number;
+  tickets: number; // Alle lodd, også gratis bonuslodd fra quizen (de gir like stor sjanse)
+  paid: number; // Betalte lodd (uten bonuslodd), til pris per flaske
   wins: number;
   expected: number;
   luck: number; // Faktiske ÷ forventede gevinster
@@ -171,17 +172,18 @@ export function winChances(ticketCounts: number[], wins: number): Map<number, nu
 export async function getLuckStats(): Promise<LuckEntry[]> {
   const sold = await prisma.ticket.findMany({
     where: { isTaken: true, ownerName: { not: null } },
-    select: { roundId: true, ownerName: true, hasWon: true },
+    select: { roundId: true, ownerName: true, hasWon: true, isBonus: true },
   });
 
-  type RoundData = { wins: number; people: Map<string, { tickets: number; wins: number }> };
+  type RoundData = { wins: number; people: Map<string, { tickets: number; paid: number; wins: number }> };
   const byRound = new Map<number, RoundData>();
   for (const t of sold) {
     const name = t.ownerName!.trim();
     if (!name) continue;
     const r = byRound.get(t.roundId) ?? { wins: 0, people: new Map() };
-    const p = r.people.get(name) ?? { tickets: 0, wins: 0 };
+    const p = r.people.get(name) ?? { tickets: 0, paid: 0, wins: 0 };
     p.tickets++;
+    if (!t.isBonus) p.paid++;
     if (t.hasWon) {
       r.wins++;
       p.wins++;
@@ -195,9 +197,10 @@ export async function getLuckStats(): Promise<LuckEntry[]> {
     if (r.wins === 0) continue; // Ingen trekning ennå
     const chance = winChances([...r.people.values()].map(p => p.tickets), r.wins);
     for (const [name, p] of r.people) {
-      const e = byName.get(name) ?? { rounds: 0, tickets: 0, wins: 0, expected: 0 };
+      const e = byName.get(name) ?? { rounds: 0, tickets: 0, paid: 0, wins: 0, expected: 0 };
       e.rounds++;
       e.tickets += p.tickets;
+      e.paid += p.paid;
       e.wins += p.wins;
       e.expected += chance.get(p.tickets)!;
       byName.set(name, e);

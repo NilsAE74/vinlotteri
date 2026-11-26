@@ -19,11 +19,13 @@ export default function QuizGame({
   initial,
   closed,
   nameSuggestions,
+  bonus = false,
 }: {
   roundName: string;
   initial: QuizState | null;
   closed: boolean;
   nameSuggestions: string[];
+  bonus?: boolean; // Topp 3 får bonuslodd i ukens trekning (fra 2027)
 }) {
   const [state, setState] = useState<QuizState | null>(initial);
   const [feedback, setFeedback] = useState<QuizFeedback | null>(null);
@@ -51,7 +53,7 @@ export default function QuizGame({
       <p className="font-serif italic wine-accent">{roundName}</p>
 
       {state === null ? (
-        <StartView closed={closed} pending={pending} nameSuggestions={nameSuggestions} onStart={name => run(() => startQuiz(name))} />
+        <StartView closed={closed} bonus={bonus} pending={pending} nameSuggestions={nameSuggestions} onStart={name => run(() => startQuiz(name))} />
       ) : showResult && state.kind === 'done' ? (
         <ResultView result={state.result} />
       ) : feedback ? (
@@ -97,7 +99,7 @@ function PrimaryButton({ pending, onClick, children, type = 'button' }: { pendin
   );
 }
 
-function StartView({ closed, pending, nameSuggestions, onStart }: { closed: boolean; pending: boolean; nameSuggestions: string[]; onStart: (name: string) => void }) {
+function StartView({ closed, bonus, pending, nameSuggestions, onStart }: { closed: boolean; bonus: boolean; pending: boolean; nameSuggestions: string[]; onStart: (name: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Fyll inn navnet fra forrige loddkjøp på denne enheten (etter hydrering,
@@ -133,6 +135,12 @@ function StartView({ closed, pending, nameSuggestions, onStart }: { closed: bool
         <li>Du kan bare prøve én gang per runde.</li>
         <li>Quizen er for dem som har kjøpt lodd denne uka. Bruk samme navn som på loddene.</li>
         <li>Svarene gir en klasse fra Bordeaux-klassifiseringen fra 1855, fra Premier Cru for fem riktige.</li>
+        {bonus && (
+          <li>
+            De tre beste får <span className="wine-accent">3, 2 og 1 ekstra lodd</span> i ukens trekning. Ved lik poengsum
+            vinner den som svarte raskest.
+          </li>
+        )}
       </ul>
       <div className="w-full max-w-xs text-left">
         <label htmlFor="quiz-name" className="block text-sm wine-text-muted mb-1">
