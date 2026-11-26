@@ -135,6 +135,13 @@ body {
   background-color: color-mix(in srgb, var(--wine-accent) 12%, transparent);
   box-shadow: 0 0 50px var(--wine-accent-soft);
 }
+/* Glassrace: 4 glass i bredden på mobil, ellers så mange kolonner som
+   komponenten regner ut (--race-cols). Vinnerglasset gløder i messing. */
+.race-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (min-width: 768px) {
+  .race-grid { grid-template-columns: repeat(var(--race-cols, 8), minmax(0, 1fr)); }
+}
+.race-glass-winner { filter: drop-shadow(0 0 14px var(--wine-accent-soft)); transform: scale(1.08); transition: transform .5s, filter .5s; }
 /* Ukens quiz: kortet er en vinetikett med dobbel messingramme. Svarknappene
    lyser i messing ved riktig svar og rødt ved feil. Klokka krymper fra der
    den står (--quiz-from) til null. */

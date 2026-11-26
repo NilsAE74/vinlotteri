@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { ArrowLeft, Lock, Unlock, Trophy, LayoutGrid, Grid3x3, CircleDot, Dices, FerrisWheel, Percent } from 'lucide-react';
+import { ArrowLeft, Lock, Unlock, Trophy, LayoutGrid, Grid3x3, CircleDot, Dices, FerrisWheel, Wine, Percent } from 'lucide-react';
 import AdminLogin from '@/src/components/AdminLogin';
 import WinnerReveal from '@/src/components/WinnerReveal';
 import GridDrawReveal from '@/src/components/GridDrawReveal';
 import SlotDrawReveal from '@/src/components/SlotDrawReveal';
 import WheelDrawReveal from '@/src/components/WheelDrawReveal';
+import GlassRaceReveal from '@/src/components/GlassRaceReveal';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import FullscreenButton from '@/src/components/FullscreenButton';
 import WineLogo from '@/src/components/WineLogo';
@@ -19,6 +20,7 @@ const VIEWS = [
   { id: 'alle-lodd', label: 'Alle lodd', icon: Grid3x3 },
   { id: 'automat', label: 'Spilleautomat', icon: Dices },
   { id: 'lykkehjul', label: 'Lykkehjul', icon: FerrisWheel },
+  { id: 'glassrace', label: 'Glassrace', icon: Wine },
   { id: 'klassisk', label: 'Klassisk', icon: CircleDot },
 ] as const;
 type View = (typeof VIEWS)[number]['id'];
@@ -49,7 +51,7 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
 
   // Dagens vinnere (usolgte lodd som ble trukket telles ikke).
   // Trekningsrekkefølgen lagres ikke, så de sorteres etter loddnummer.
-  // Rutenett, spilleautomat og lykkehjul trekker kun blant solgte lodd
+  // Rutenett, spilleautomat, lykkehjul og glassrace trekker kun blant solgte lodd
   const pot = allTickets ? eligibleTickets : eligibleTickets.filter(t => t.isTaken && t.ownerName);
   // «Dagens vinnere» vises ikke i rutenettene, som uthever vinnerne på brettet
   const showWinners = !isGrid;
@@ -139,6 +141,8 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
               <WinnerReveal takenTickets={eligibleTickets} large />
             ) : view === 'automat' ? (
               <SlotDrawReveal pot={pot.map(t => ({ number: t.number, ownerName: t.ownerName! }))} />
+            ) : view === 'glassrace' ? (
+              <GlassRaceReveal pot={pot.map(t => ({ number: t.number, ownerName: t.ownerName! }))} />
             ) : view === 'lykkehjul' ? (
               <WheelDrawReveal pot={pot.map(t => ({ number: t.number, ownerName: t.ownerName! }))} />
             ) : (
