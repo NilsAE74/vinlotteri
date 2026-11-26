@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { Lightbulb, Shuffle } from 'lucide-react';
-import { WINE_FUN_FACTS, pickFunFactIndex } from '@/lib/wine-fun-facts';
+import { pickFunFactIndex } from '@/lib/wine-fun-facts';
 
-// Fun fact om vin på forsiden. Første fakta velges på serveren (så server- og
-// klient-HTML er like); «Trekk en ny» trekker en annen tilfeldig fra listen.
-export default function FunFactBox({ initialIndex }: { initialIndex: number }) {
+// Fun fact om vin på forsiden. Factene hentes fra databasen og første fact
+// velges på serveren (så server- og klient-HTML er like); «Trekk en ny» trekker
+// en annen tilfeldig fra listen.
+export default function FunFactBox({ facts, initialIndex }: { facts: string[]; initialIndex: number }) {
   const [index, setIndex] = useState(initialIndex);
   const [drawn, setDrawn] = useState(false);
 
@@ -23,12 +24,12 @@ export default function FunFactBox({ initialIndex }: { initialIndex: number }) {
           aria-live="polite"
           className={`wine-text text-[13.5px] leading-relaxed${drawn ? ' fact-in' : ''}`}
         >
-          <span className="wine-text-muted">Visste du dette?</span> {WINE_FUN_FACTS[index]}
+          <span className="wine-text-muted">Visste du dette?</span> {facts[index]}
         </p>
         <button
           type="button"
           onClick={() => {
-            setIndex(i => pickFunFactIndex(i));
+            setIndex(i => pickFunFactIndex(facts.length, i));
             setDrawn(true);
           }}
           className="wine-link mt-1.5 -ml-1 inline-flex items-center gap-1.5 rounded px-1 py-1 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]"

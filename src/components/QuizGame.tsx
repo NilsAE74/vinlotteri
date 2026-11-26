@@ -10,7 +10,7 @@ import QuizTopList from './QuizTopList';
 // spørsmål, tidsfrist, poeng); komponenten viser bare det serveren sender.
 
 const SAVED_NAME_KEY = 'vinlotteri-navn'; // Samme nøkkel som kjøpsdialogen
-const SECONDS_PER_QUESTION = 20; // Samme som i lib/quiz-questions.ts (som ikke skal til klienten)
+const SECONDS_PER_QUESTION = 20; // Samme som i lib/quiz.ts (som ikke skal til klienten)
 
 const seconds = (s: number) => s.toLocaleString('nb-NO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 

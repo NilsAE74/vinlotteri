@@ -2,12 +2,20 @@
 // Vanlig servermodul (ikke 'use server'). Kallerne må selv sjekke hvem som spør;
 // handlingene ligger i lib/quiz-actions.ts.
 
-import { createHash } from 'crypto';
+import { createHash, randomInt } from 'crypto';
 import { cookies } from 'next/headers';
 import type { QuizAttempt } from '@prisma/client';
 import { prisma } from './prisma';
-import { WINE_FUN_FACTS } from './wine-fun-facts';
-import { QUIZ_QUESTIONS, QUESTIONS_PER_QUIZ, SECONDS_PER_QUESTION, quizClass, type QuizQuestion } from './quiz-questions';
+import { getActiveQuestionIds, getQuestion, type QuizQuestion } from './quiz-bank';
+
+export const QUESTIONS_PER_QUIZ = 5;
+export const SECONDS_PER_QUESTION = 20; // Samme som i src/components/QuizGame.tsx
+
+// Klassene fra Bordeaux-klassifiseringen fra 1855, etter antall riktige svar (0–5)
+const CLASSES = ['Ikke klassifisert', 'Cinquième Cru', 'Quatrième Cru', 'Troisième Cru', 'Deuxième Cru', 'Premier Cru'];
+export function quizClass(score: number) {
+  return CLASSES[Math.max(0, Math.min(CLASSES.length - 1, score))];
+}
 
 export const QUIZ_COOKIE = 'quiz_token';
 // Litt slingringsmonn for nettverket før et svar regnes som for sent
@@ -29,7 +37,7 @@ export type QuizState =
 // --- Spørsmål per runde ---
 
 // Liten deterministisk tilfeldighetsgenerator (mulberry32), så samme runde
-// alltid får samme spørsmål og samme rekkefølge på svarene
+// alltid får samme rekkefølge på svarene
 function rng(seed: number) {
   let a = seed >>> 0;
   return () => {
@@ -53,14 +61,39 @@ function hashSeed(text: string) {
   return createHash('sha256').update(text).digest().readUInt32LE(0);
 }
 
-const BY_ID = new Map(QUIZ_QUESTIONS.map(q => [q.id, q]));
-// Fast rekkefølge på hele banken; hver runde tar de neste fem, så det går
-// mange uker før et spørsmål kommer igjen
-const ROTATION = seededShuffle(QUIZ_QUESTIONS.map(q => q.id), 1855);
+// Trekker fem tilfeldige aktive spørsmål, og tar de som er brukt i færrest
+// tidligere runder først, så det går lenge før et spørsmål kommer igjen.
+// Tilfeldig (ikke utledet av runde-id), så ingen kan regne ut ukens spørsmål.
+async function pickQuestions(roundId: number) {
+  const active = await getActiveQuestionIds();
+  if (active.length < QUESTIONS_PER_QUIZ) return null;
 
-export function questionIdsForRound(roundId: number) {
-  const start = (roundId * QUESTIONS_PER_QUIZ) % ROTATION.length;
-  return Array.from({ length: QUESTIONS_PER_QUIZ }, (_, i) => ROTATION[(start + i) % ROTATION.length]);
+  const earlier = await prisma.lotteryRound.findMany({ where: { id: { not: roundId } }, select: { quizQuestionIds: true } });
+  const uses = new Map<string, number>();
+  for (const r of earlier) for (const id of r.quizQuestionIds) uses.set(id, (uses.get(id) ?? 0) + 1);
+
+  return active
+    .map(id => ({ id, uses: uses.get(id) ?? 0, tiebreak: randomInt(2 ** 32) }))
+    .sort((a, b) => a.uses - b.uses || a.tiebreak - b.tiebreak)
+    .slice(0, QUESTIONS_PER_QUIZ)
+    .map(q => q.id);
+}
+
+// Rundens spørsmål. Trekkes første gang noen starter quizen og lagres på
+// runden, så alle får de samme. Null hvis banken har for få aktive spørsmål.
+export async function questionIdsForRound(roundId: number): Promise<string[] | null> {
+  const round = await prisma.lotteryRound.findUniqueOrThrow({ where: { id: roundId }, select: { quizQuestionIds: true } });
+  if (round.quizQuestionIds.length > 0) return round.quizQuestionIds;
+
+  // Runder der noen spilte før utvalget ble lagret på runden, beholder spørsmålene de fikk
+  const first = await prisma.quizAttempt.findFirst({ where: { roundId }, orderBy: { id: 'asc' }, select: { questionIds: true } });
+  const chosen = first?.questionIds ?? (await pickQuestions(roundId));
+  if (!chosen) return null;
+
+  // Starter to samtidig, er det den første som lagres som gjelder
+  await prisma.lotteryRound.updateMany({ where: { id: roundId, quizQuestionIds: { isEmpty: true } }, data: { quizQuestionIds: chosen } });
+  const saved = await prisma.lotteryRound.findUniqueOrThrow({ where: { id: roundId }, select: { quizQuestionIds: true } });
+  return saved.quizQuestionIds;
 }
 
 // Svaralternativene i rundens rekkefølge, og hvor det riktige havnet
@@ -69,8 +102,8 @@ function arranged(q: QuizQuestion, roundId: number) {
   return { options: order.map(i => q.options[i]), correct: order.indexOf(q.answer) };
 }
 
-function questionAt(attempt: QuizAttempt, index: number) {
-  const q = BY_ID.get(attempt.questionIds[index]);
+async function questionAt(attempt: QuizAttempt, index: number) {
+  const q = await getQuestion(attempt.questionIds[index]);
   if (!q) throw new Error(`Ukjent quizspørsmål: ${attempt.questionIds[index]}`);
   return { q, ...arranged(q, attempt.roundId) };
 }
@@ -99,7 +132,7 @@ export async function recordAnswer(attempt: QuizAttempt, index: number, choice: 
   const elapsed = Date.now() - attempt.shownAt.getTime();
   const late = elapsed > LIMIT_MS + GRACE_MS;
   const chosen = late || choice < 0 || choice > 3 ? -1 : choice;
-  const { q, options, correct } = questionAt(attempt, index);
+  const { q, options, correct } = await questionAt(attempt, index);
   const isRight = chosen === correct;
   const last = index === attempt.questionIds.length - 1;
 
@@ -115,7 +148,7 @@ export async function recordAnswer(attempt: QuizAttempt, index: number, choice: 
   });
   if (updated.count !== 1) return null;
 
-  return { index, total: attempt.questionIds.length, text: q.text, options, chosen, correct, fact: WINE_FUN_FACTS[q.factIndex] ?? '' };
+  return { index, total: attempt.questionIds.length, text: q.text, options, chosen, correct, fact: q.fact };
 }
 
 // Viser neste spørsmål og starter klokka for det
@@ -139,7 +172,7 @@ export async function attemptState(attempt: QuizAttempt): Promise<QuizState> {
   if (!a.shownAt) return { kind: 'between', next: a.answers.length, total, score: a.score };
 
   const index = a.answers.length;
-  const { q, options } = questionAt(a, index);
+  const { q, options } = await questionAt(a, index);
   const left = Math.max(0, LIMIT_MS - (Date.now() - a.shownAt.getTime()));
   return {
     kind: 'question',

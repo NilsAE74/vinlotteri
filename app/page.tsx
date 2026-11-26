@@ -12,6 +12,7 @@ import WineShowcase from '@/src/components/WineShowcase';
 import FunFactBox from '@/src/components/FunFactBox';
 import WineSummaryBox from '@/src/components/WineSummaryBox';
 import { pickFunFactIndex } from '@/lib/wine-fun-facts';
+import { getFunFacts } from '@/lib/quiz-bank';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import TicketProgressBar from '@/src/components/TicketProgressBar';
 import KakeTidslinje, { type KakeUke } from '@/src/components/KakeTidslinje';
@@ -113,8 +114,8 @@ export default async function Home() {
   const ansattNavn = [...new Set(ansatte.map(a => a.Navn!.trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'nb'));
 
-  const funFactIndex = pickFunFactIndex();
-  const quizTop = await getTopList(activeRound.id);
+  const [funFacts, quizTop] = await Promise.all([getFunFacts(), getTopList(activeRound.id)]);
+  const funFactIndex = pickFunFactIndex(funFacts.length);
 
   const roundLabel = activeRound.name ?? '';
 
@@ -139,7 +140,7 @@ export default async function Home() {
         {/* Fun fact + AI-oppsummering i én kolonne, ukens viner + kakebakere i den andre */}
         <div className="flex flex-wrap gap-10">
           <div className="flex-[1_1_260px] min-w-[240px] flex flex-col gap-4">
-            <FunFactBox initialIndex={funFactIndex} />
+            {funFacts.length > 0 && <FunFactBox facts={funFacts} initialIndex={funFactIndex} />}
             {/* Ukens quiz: topp 5 så langt, eller en invitasjon før noen har svart */}
             <aside aria-labelledby="quiz-tittel" className="wine-card-alpha border border-dashed wine-border-strong rounded-lg px-4 pt-3.5 pb-2.5 flex flex-col gap-2">
               <h2 id="quiz-tittel" className="font-serif text-lg font-semibold wine-text">Ukens vinquiz</h2>

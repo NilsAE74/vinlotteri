@@ -15,6 +15,7 @@ model LotteryRound {
   isLocked  Boolean  @default(false)
   aiSummary String?  // Kort oppsummering av ukens viner, laget av AI (Gemini). Kan redigeres i admin
   winesConfirmed Boolean @default(false) // Admin har bekreftet at ukens viner er de riktige (ellers bare forslag)
+  quizQuestionIds String[] @default([]) // Ukens quizspørsmål (QuizSporsmal.id), trukket tilfeldig første gang noen starter quizen
   createdAt DateTime @default(now())
   tickets   Ticket[]
   wines     Wine[]
@@ -48,11 +49,38 @@ model Ticket {
 }
 // Ukens quiz: ett forsøk per person per runde, kun for dem som har lodd i runden.
 // Bare den som startet forsøket kan svare (hemmelig token i en cookie, lagret som hash).
+// Fun facts om vin: vises på forsiden og som forklaring etter et quizsvar.
+// Redigeres i Supabase sin tabelleditor. active = false skjuler en fact.
+model FunFact {
+  id        Int            @id @default(autoincrement())
+  text      String
+  active    Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  questions QuizSporsmal[]
+}
+
+// Spørsmålsbanken til ukens quiz. Ligger i databasen og ikke i koden, fordi
+// repoet er offentlig og fasiten ikke skal være det. Redigeres i Supabase.
+// id må aldri endres eller gjenbrukes (påbegynte forsøk lagrer den); sett
+// heller active = false. options har nøyaktig fire alternativer, og answer er
+// indeksen til det riktige (0–3). Rekkefølgen stokkes per runde.
+model QuizSporsmal {
+  id        String   @id
+  text      String
+  options   String[]
+  answer    Int
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  factId    Int?
+  fact      FunFact? @relation(fields: [factId], references: [id], onDelete: SetNull)
+}
+
 model QuizAttempt {
   id          Int       @id @default(autoincrement())
   name        String    // Samme skrivemåte som på loddene (canonicalName)
   tokenHash   String    // SHA-256 av tokenet i cookien
-  questionIds String[]  // Spørsmålene i forsøket (id fra lib/quiz-questions.ts)
+  questionIds String[]  // Spørsmålene i forsøket (QuizSporsmal.id)
   answers     Int[]     // Valgt alternativ per besvart spørsmål, -1 = tiden gikk ut
   score       Int       @default(0)
   timeMs      Int       @default(0) // Samlet svartid, skiller like poengsummer
