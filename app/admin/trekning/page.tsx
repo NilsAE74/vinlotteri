@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Lock, Unlock, Trophy, LayoutGrid, Grid3x3, CircleDot, Dices, FerrisWheel, Wine } from 'lucide-react';
+import { ArrowLeft, Lock, Unlock, Trophy, LayoutGrid, Grid3x3, CircleDot, Dices, FerrisWheel, Wine, Percent } from 'lucide-react';
 import AdminLogin from '@/src/components/AdminLogin';
 import WinnerReveal from '@/src/components/WinnerReveal';
 import GridDrawReveal from '@/src/components/GridDrawReveal';
@@ -25,15 +25,26 @@ const VIEWS = [
 ] as const;
 type View = (typeof VIEWS)[number]['id'];
 
+// Lenke til en visning, med eller uten vinnersjanse på brettet (?odds=vis)
+function drawHref(view: View, odds: boolean) {
+  const params = new URLSearchParams();
+  if (view !== 'rutenett') params.set('visning', view);
+  if (odds) params.set('odds', 'vis');
+  const query = params.toString();
+  return query ? `/admin/trekning?${query}` : '/admin/trekning';
+}
+
 // Storskjermvisning for live-trekning
-export default async function DrawPage({ searchParams }: { searchParams: Promise<{ visning?: string }> }) {
+export default async function DrawPage({ searchParams }: { searchParams: Promise<{ visning?: string; odds?: string }> }) {
   if (!(await isAdminAuthenticated())) return <AdminLogin />;
 
-  const requested = (await searchParams).visning;
+  const { visning: requested, odds } = await searchParams;
   const view: View = VIEWS.some(v => v.id === requested) ? (requested as View) : 'rutenett';
   // Klassisk og «Alle lodd» trekker blant alle lodd, også usolgte
   const allTickets = view === 'klassisk' || view === 'alle-lodd';
   const isGrid = view === 'rutenett' || view === 'alle-lodd';
+  // Vinnersjanse under navnene på brettet – et valg, av som standard
+  const showOdds = odds === 'vis';
 
   const theme = await getAdminTheme();
   const { activeRound, eligibleTickets, takenCount } = await getAdminPageData();
@@ -62,7 +73,7 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
             {VIEWS.map(({ id, label, icon: Icon }) => (
               <Link
                 key={id}
-                href={id === 'rutenett' ? '/admin/trekning' : `/admin/trekning?visning=${id}`}
+                href={drawHref(id, showOdds)}
                 aria-current={view === id ? 'page' : undefined}
                 className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${
                   view === id ? 'wine-burgundy-bg wine-accent' : 'wine-link'
@@ -72,6 +83,19 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
               </Link>
             ))}
           </nav>
+          {/* Vis/skjul vinnersjanse – bare i rutenettene */}
+          {isGrid && (
+            <Link
+              href={drawHref(view, !showOdds)}
+              aria-pressed={showOdds}
+              title={showOdds ? 'Skjul vinnersjansen på brettet' : 'Vis vinnersjansen under navnene på brettet'}
+              className={`text-sm px-3 py-1.5 rounded-lg border wine-border-faint flex items-center gap-1.5 transition-colors ${
+                showOdds ? 'wine-burgundy-bg wine-accent' : 'wine-link'
+              }`}
+            >
+              <Percent className="w-4 h-4" /> <span className="hidden sm:inline">Vinnersjanse</span>
+            </Link>
+          )}
           {activeRound && (
             <form action={toggleRoundLock}>
               <button
@@ -129,6 +153,7 @@ export default async function DrawPage({ searchParams }: { searchParams: Promise
                   .map(({ number, ownerName, hasWon }) => ({ number, ownerName, hasWon }))}
                 eligibleNumbers={pot.map(t => t.number)}
                 onlySold={!allTickets}
+                showOdds={showOdds}
               />
             )}
 

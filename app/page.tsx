@@ -17,6 +17,8 @@ import TicketProgressBar from '@/src/components/TicketProgressBar';
 import KakeTidslinje, { type KakeUke } from '@/src/components/KakeTidslinje';
 import Perforation from '@/src/components/Perforation';
 import RoundStamp from '@/src/components/RoundStamp';
+import QuizTopList from '@/src/components/QuizTopList';
+import { getTopList } from '@/lib/quiz';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
@@ -112,6 +114,7 @@ export default async function Home() {
     .sort((a, b) => a.localeCompare(b, 'nb'));
 
   const funFactIndex = pickFunFactIndex();
+  const quizTop = await getTopList(activeRound.id);
 
   const roundLabel = activeRound.name ?? '';
 
@@ -137,6 +140,22 @@ export default async function Home() {
         <div className="flex flex-wrap gap-10">
           <div className="flex-[1_1_260px] min-w-[240px] flex flex-col gap-4">
             <FunFactBox initialIndex={funFactIndex} />
+            {/* Ukens quiz: topp 5 så langt, eller en invitasjon før noen har svart */}
+            <aside aria-labelledby="quiz-tittel" className="wine-card-alpha border border-dashed wine-border-strong rounded-lg px-4 pt-3.5 pb-2.5 flex flex-col gap-2">
+              <h2 id="quiz-tittel" className="font-serif text-lg font-semibold wine-text">Ukens vinquiz</h2>
+              {quizTop.participants > 0 ? (
+                <QuizTopList rows={quizTop.top} compact />
+              ) : (
+                <p className="wine-text-muted text-[13.5px] leading-relaxed">
+                  Fem spørsmål om vin for dem som har kjøpt lodd. Ingen har svart ennå denne uka.
+                </p>
+              )}
+              {!activeRound.isLocked && (
+                <Link href="/quiz" className="wine-link text-[13.5px] self-start underline underline-offset-4">
+                  Ta ukens quiz
+                </Link>
+              )}
+            </aside>
             {activeRound.wines.length > 0 && activeRound.aiSummary && (
               <WineSummaryBox summary={activeRound.aiSummary} />
             )}
@@ -172,6 +191,8 @@ export default async function Home() {
             <a href="../admin" className="wine-link">Admin</a>
             <span className="mx-2">·</span>
             <Link href="/vinnerhistorikk" className="wine-link">Vinnerhistorikk</Link>
+            <span className="mx-2">·</span>
+            <Link href="/quiz" className="wine-link">Quiz</Link>
           </span>
         </footer>
       </div>

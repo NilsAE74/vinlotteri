@@ -9,6 +9,8 @@ import WineShoppingPlanner from '@/src/components/WineShoppingPlanner';
 import TicketBookingsEditor from '@/src/components/TicketBookingsEditor';
 import ResetDrawButton from '@/src/components/ResetDrawButton';
 import TestTicketsButtons from '@/src/components/TestTicketsButtons';
+import ResetQuizButton from '@/src/components/ResetQuizButton';
+import { prisma } from '@/lib/prisma';
 import PendingSubmitButton from '@/src/components/PendingSubmitButton';
 
 export default async function AdminPage() {
@@ -18,6 +20,11 @@ export default async function AdminPage() {
 
   // 1. Hent den nye, smarte dataen
   const { activeRound, eligibleTickets, takenCount } = await getAdminPageData();
+  // Antall quizforsøk i runden (bare for nullstill-knappen i utviklingsmodus)
+  const quizAttemptCount =
+    process.env.NODE_ENV !== 'production' && activeRound
+      ? await prisma.quizAttempt.count({ where: { roundId: activeRound.id } })
+      : 0;
 
   // 2. Hent statistikk
   const { hallOfFame, winningNumbers } = await getAdminStats();
@@ -132,6 +139,9 @@ export default async function AdminPage() {
                 <ResetDrawButton winnerCount={activeRound.tickets.filter(t => t.hasWon).length} />
                 <div className="mt-3">
                   <TestTicketsButtons />
+                </div>
+                <div className="mt-3">
+                  <ResetQuizButton attemptCount={quizAttemptCount} />
                 </div>
               </div>
             )}

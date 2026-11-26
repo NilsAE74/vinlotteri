@@ -142,6 +142,17 @@ body {
   .race-grid { grid-template-columns: repeat(var(--race-cols, 8), minmax(0, 1fr)); }
 }
 .race-glass-winner { filter: drop-shadow(0 0 14px var(--wine-accent-soft)); transform: scale(1.08); transition: transform .5s, filter .5s; }
+/* Ukens quiz: kortet er en vinetikett med dobbel messingramme. Svarknappene
+   lyser i messing ved riktig svar og rødt ved feil. Klokka krymper fra der
+   den står (--quiz-from) til null. */
+.etikett { border: 1px solid var(--wine-border-strong); outline: 1px solid var(--wine-border-strong); outline-offset: 5px; }
+.quiz-option { border-color: var(--wine-border-strong); transition: border-color .15s, background-color .15s; }
+.quiz-option:hover:not(:disabled) { border-color: var(--wine-accent); background-color: color-mix(in srgb, var(--wine-accent) 8%, transparent); }
+.quiz-option:focus-visible { outline: 2px solid var(--wine-accent); outline-offset: 2px; }
+.quiz-right { border-color: var(--wine-accent); background-color: color-mix(in srgb, var(--wine-accent) 16%, transparent); }
+.quiz-wrong { border-color: #b84a4a; color: #d26a6a; text-decoration: line-through; }
+@keyframes quiz-timer { from { transform: scaleX(var(--quiz-from, 1)); } to { transform: scaleX(0); } }
+.quiz-timer { transform-origin: left; animation: quiz-timer linear forwards; }
 
 /* --- Trekningsanimasjoner --- */
 
