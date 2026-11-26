@@ -59,7 +59,7 @@ Pure modules (no side effects, usable on client and server): `lib/wine-details-m
 - `app/page.tsx` — Public lottery page. Fetches active round, tickets, wines and cake list; renders a header stamp with the draw date, fun fact + AI summary (left column), wine showcase + cake timeline (right column), progress bar and `<LotteryGrid>`.
 - `app/vinnerhistorikk/page.tsx` — Public winner history and luck stats.
 - `app/admin/page.tsx` — Admin panel (cookie-authenticated): round management, lock/unlock, ticket bookings, wine list and shopping planner, AI summary, stats, test tools.
-- `app/admin/trekning/page.tsx` — Big-screen live draw. View chosen with `?visning=`: `rutenett` (default), `alle-lodd` (same grid, drawing among all tickets), `automat`, `lykkehjul`, `klassisk`.
+- `app/admin/trekning/page.tsx` — Big-screen live draw. View chosen with `?visning=`: `rutenett` (default), `alle-lodd` (same grid, drawing among all tickets), `automat`, `lykkehjul`, `klassisk`. In the grid views, `?odds=vis` (toggle in the toolbar) shows each owner's win chance under their name.
 
 ### Key Components (`src/components/`)
 

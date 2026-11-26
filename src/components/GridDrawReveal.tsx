@@ -9,9 +9,9 @@ import { eliminationOrder, eliminationTimes } from './drawOrder';
 // Trekningsvisning: alle 200 lodd vises i et rutenett, og loddene i potten
 // slukkes gradvis til bare vinneren lyser. Med onlySold (standard) er kun
 // solgte lodd med i potten og usolgte vises dempet; uten er alle lodd med.
-// Solgte lodd viser bare eierens navn, usolgte viser nummeret. Under navnet
-// står eierens sjanse for å vinne: andelen av loddene som fortsatt er i potten.
-// Sjansen regnes om etter hvert som lodd slukkes, så den stiger underveis.
+// Solgte lodd viser bare eierens navn, usolgte viser nummeret. Med showOdds
+// står eierens sjanse for å vinne under navnet: andelen av loddene som
+// fortsatt er i potten. Sjansen regnes om etter hvert som lodd slukkes.
 //
 // Serveren trekker vinneren FØR animasjonen starter. Animasjonen er bare
 // et show som alltid ender på loddet serveren valgte.
@@ -28,10 +28,12 @@ export default function GridDrawReveal({
   tickets,
   eligibleNumbers,
   onlySold = true,
+  showOdds = false,
 }: {
   tickets: GridTicket[];
   eligibleNumbers: number[];
   onlySold?: boolean;
+  showOdds?: boolean;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('idle');
@@ -132,7 +134,7 @@ export default function GridDrawReveal({
 
   // Hver eiers andel av loddene som er igjen i potten
   const oddsByOwner = new Map<string, number>();
-  if (remaining > 0) {
+  if (showOdds && remaining > 0) {
     const ownerOf = new Map(tickets.map(t => [t.number, t.ownerName?.trim() ?? null]));
     for (const n of remainingNumbers) {
       const owner = ownerOf.get(n);
