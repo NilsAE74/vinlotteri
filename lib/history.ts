@@ -107,6 +107,11 @@ export type LuckEntry = {
 
 export const LUCK_MIN_ROUNDS = 3;
 
+// Til «pris per flaske» i flaksometeret: hva loddene har kostet per vunnet flaske,
+// sammenlignet med en antatt butikkpris. Loddprisen er den samme som i TicketDialog.
+export const TICKET_PRICE = 5;
+export const BOTTLE_PRICE = 180;
+
 // Eksakt sannsynlighet for å vinne i en runde, per loddantall.
 //
 // Slik trekningen virker (drawWinnerAction): hver gevinst trekkes tilfeldig

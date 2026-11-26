@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { ArrowLeft, Trophy, BarChart3, ScrollText, Gauge } from 'lucide-react';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import { getAdminTheme } from '@/lib/admin-auth';
-import { getWinnerHistory, getLuckStats, LUCK_MIN_ROUNDS, type LuckEntry } from '@/lib/history';
+import { getWinnerHistory, getLuckStats, LUCK_MIN_ROUNDS, TICKET_PRICE, BOTTLE_PRICE, type LuckEntry } from '@/lib/history';
 
 export const metadata: Metadata = { title: 'Vinnerhistorikk – Vinlotteri' };
 export const dynamic = 'force-dynamic'; // Alltid ferske tall fra databasen
@@ -109,8 +109,10 @@ export default async function WinnerHistoryPage() {
                 <p className="wine-text-muted text-sm mb-5 max-w-2xl">
                   Hvem vinner oftere enn antall lodd skulle tilsi? 100 % betyr akkurat så mange gevinster som
                   forventet ut fra hvor mange lodd du har kjøpt. Over 100 % er flaks, under er uflaks.
+                  Per flaske er hva loddene dine har kostet ({TICKET_PRICE} kr stykket) per flaske du har vunnet.
+                  En flaske koster rundt {BOTTLE_PRICE} kr, så alt under det er billigere vin enn på polet.
                 </p>
-                <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] sm:grid-cols-[11rem_minmax(0,1fr)_3.5rem] gap-x-4 px-4 text-xs wine-text-subtle font-mono mb-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_4.5rem] sm:grid-cols-[11rem_minmax(0,1fr)_3.5rem_4.5rem] gap-x-4 px-4 text-xs wine-text-subtle font-mono mb-2">
                   <span className="hidden sm:block" />
                   <div className="flex justify-between">
                     <span>Uflaks</span>
@@ -118,6 +120,7 @@ export default async function WinnerHistoryPage() {
                     <span>Flaks</span>
                   </div>
                   <span />
+                  <span className="text-right">Per flaske</span>
                 </div>
                 <ol className="space-y-2">
                   {luck.map((e, i) => (
@@ -125,7 +128,8 @@ export default async function WinnerHistoryPage() {
                   ))}
                 </ol>
                 <p className="wine-text-subtle text-xs font-mono mt-4">
-                  Forventet per runde = dine lodd ÷ solgte lodd × antall gevinster. Bare runder med trekning telles.
+                  Forventet per runde = sjansen din for å vinne, ut fra dine og alles lodd og antall gevinster
+                  (ingen kan vinne to ganger samme runde). Bare runder med trekning telles.
                 </p>
               </Section>
             )}
@@ -227,7 +231,7 @@ function Section({ icon, title, note, children }: { icon: React.ReactNode; title
   );
 }
 
-// Én rad i flaksometeret: navn, måler og flaksprosent.
+// Én rad i flaksometeret: navn, måler, flaksprosent og pris per vunnet flaske.
 // Måleren går fra 0 % (venstre) via 100 % (midten) til 200 % eller mer (høyre),
 // og fyller fra midten mot den siden personen har flaks eller uflaks.
 function LuckRow({ entry: e, top }: { entry: LuckEntry; top: boolean }) {
@@ -237,14 +241,17 @@ function LuckRow({ entry: e, top }: { entry: LuckEntry; top: boolean }) {
   const ticketsPerWin = e.wins > 0 ? (e.tickets / e.wins).toFixed(1).replace('.', ',') : null;
   const expected = e.expected.toFixed(1).replace('.', ',');
   const winsText = `${e.wins} ${e.wins === 1 ? 'gevinst' : 'gevinster'}`;
+  const spent = e.tickets * TICKET_PRICE;
+  const perBottle = e.wins > 0 ? Math.round(spent / e.wins) : null;
+  const cheap = perBottle !== null && perBottle < BOTTLE_PRICE;
 
   return (
     <li
-      className={`grid grid-cols-[minmax(0,1fr)_3.5rem] sm:grid-cols-[11rem_minmax(0,1fr)_3.5rem] items-center gap-x-4 gap-y-1.5 px-4 py-3 rounded-lg border wine-card-bg ${
+      className={`grid grid-cols-[minmax(0,1fr)_3.5rem_4.5rem] sm:grid-cols-[11rem_minmax(0,1fr)_3.5rem_4.5rem] items-center gap-x-4 gap-y-1.5 px-4 py-3 rounded-lg border wine-card-bg ${
         top ? 'border-[#D4AF37]' : 'border-[#722F37]/30'
       }`}
     >
-      <div className="min-w-0 col-span-2 sm:col-span-1">
+      <div className="min-w-0 col-span-3 sm:col-span-1">
         <div className="wine-text font-semibold truncate">{e.name}</div>
         <div className="wine-text-subtle font-mono text-xs">
           <span className="whitespace-nowrap">{winsText} · {e.tickets} lodd</span>
@@ -265,6 +272,16 @@ function LuckRow({ entry: e, top }: { entry: LuckEntry; top: boolean }) {
       </div>
       <span className={`font-mono text-right tabular-nums ${lucky ? 'text-[#D4AF37]' : 'wine-text-muted'}`}>
         <b className="text-lg">{pct}</b>%
+      </span>
+      <span
+        className={`font-mono text-right tabular-nums whitespace-nowrap ${cheap ? 'text-[#D4AF37]' : 'wine-text-muted'}`}
+        title={
+          perBottle === null
+            ? `${spent} kr på lodd, ingen flasker ennå`
+            : `${spent} kr på lodd for ${e.wins} ${e.wins === 1 ? 'flaske' : 'flasker'} (flaskepris ca. ${BOTTLE_PRICE} kr)`
+        }
+      >
+        {perBottle === null ? '–' : <><b>{perBottle}</b> kr</>}
       </span>
     </li>
   );
