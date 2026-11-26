@@ -90,10 +90,11 @@ export async function getWinnerHistory() {
 // --- Flaksometer ---
 // Hvem vinner oftere enn antall lodd skulle tilsi?
 //
-// For hver runde med trekning: forventede gevinster = egne lodd ÷ solgte lodd
-// × antall gevinster som gikk til solgte lodd. Flaks = faktiske gevinster ÷
-// summen av forventede. 1 = som forventet, over 1 = flaks, under 1 = uflaks.
-// Runder uten trekning (f.eks. den som pågår) telles ikke.
+// For hver runde med trekning: forventede gevinster = sannsynligheten for at
+// personen vant, gitt hvor mange lodd hen og alle andre hadde og hvor mange
+// gevinster som gikk til solgte lodd (se winChances). Flaks = faktiske
+// gevinster ÷ summen av forventede. 1 = som forventet, over 1 = flaks,
+// under 1 = uflaks. Runder uten trekning (f.eks. den som pågår) telles ikke.
 
 export type LuckEntry = {
   name: string;
@@ -106,20 +107,75 @@ export type LuckEntry = {
 
 export const LUCK_MIN_ROUNDS = 3;
 
+// Eksakt sannsynlighet for å vinne i en runde, per loddantall.
+//
+// Slik trekningen virker (drawWinnerAction): hver gevinst trekkes tilfeldig
+// blant loddene som er igjen, og når noen vinner, går resten av loddene
+// deres ut av potten, så ingen kan vinne to ganger. Gevinster til usolgte
+// lodd fjerner ingen og påvirker ikke fordelingen blant de solgte, så det
+// holder å se på de `wins` gevinstene som gikk til solgte lodd.
+//
+// Personer med like mange lodd har samme sjanse, så tilstanden er hvor mange
+// i hver gruppe (likt loddantall) som har vunnet, pluss om «meg» har vunnet.
+// Det gir få tilstander selv med mange deltakere.
+//
+// Svaret er en Map fra loddantall til sannsynligheten for at en person med
+// så mange lodd vinner én gang i runden (0–1, aldri mer enn én gevinst).
+export function winChances(ticketCounts: number[], wins: number): Map<number, number> {
+  const sizes = new Map<number, number>();
+  for (const c of ticketCounts) sizes.set(c, (sizes.get(c) ?? 0) + 1);
+  const total = ticketCounts.reduce((a, b) => a + b, 0);
+
+  const result = new Map<number, number>();
+  for (const mine of sizes.keys()) {
+    // Grupper av de andre: [loddantall, antall personer]
+    const groups = [...sizes].map(([c, n]) => [c, c === mine ? n - 1 : n] as const);
+
+    // Tilstand: vinnere per gruppe + om meg har vunnet (siste tall), som nøkkel
+    let states = new Map<string, { won: number[]; me: boolean; p: number }>([
+      ['', { won: groups.map(() => 0), me: false, p: 1 }],
+    ]);
+    for (let draw = 0; draw < wins; draw++) {
+      const next = new Map<string, { won: number[]; me: boolean; p: number }>();
+      const add = (won: number[], me: boolean, p: number) => {
+        const key = `${won.join(',')}|${me ? 1 : 0}`;
+        const s = next.get(key);
+        if (s) s.p += p;
+        else next.set(key, { won, me, p });
+      };
+      for (const { won, me, p } of states.values()) {
+        const left = total - (me ? mine : 0) - groups.reduce((sum, [c], g) => sum + c * won[g], 0);
+        if (left <= 0) {
+          add(won, me, p); // Alle har vunnet, ingen flere å trekke blant
+          continue;
+        }
+        if (!me) add(won, true, (p * mine) / left);
+        groups.forEach(([c, n], g) => {
+          if (won[g] < n) add(won.map((w, i) => (i === g ? w + 1 : w)), me, (p * (n - won[g]) * c) / left);
+        });
+      }
+      states = next;
+    }
+    let pMe = 0;
+    for (const s of states.values()) if (s.me) pMe += s.p;
+    result.set(mine, pMe);
+  }
+  return result;
+}
+
 export async function getLuckStats(): Promise<LuckEntry[]> {
   const sold = await prisma.ticket.findMany({
     where: { isTaken: true, ownerName: { not: null } },
     select: { roundId: true, ownerName: true, hasWon: true },
   });
 
-  type RoundData = { sold: number; wins: number; people: Map<string, { tickets: number; wins: number }> };
+  type RoundData = { wins: number; people: Map<string, { tickets: number; wins: number }> };
   const byRound = new Map<number, RoundData>();
   for (const t of sold) {
     const name = t.ownerName!.trim();
     if (!name) continue;
-    const r = byRound.get(t.roundId) ?? { sold: 0, wins: 0, people: new Map() };
+    const r = byRound.get(t.roundId) ?? { wins: 0, people: new Map() };
     const p = r.people.get(name) ?? { tickets: 0, wins: 0 };
-    r.sold++;
     p.tickets++;
     if (t.hasWon) {
       r.wins++;
@@ -132,12 +188,13 @@ export async function getLuckStats(): Promise<LuckEntry[]> {
   const byName = new Map<string, Omit<LuckEntry, 'name' | 'luck'>>();
   for (const r of byRound.values()) {
     if (r.wins === 0) continue; // Ingen trekning ennå
+    const chance = winChances([...r.people.values()].map(p => p.tickets), r.wins);
     for (const [name, p] of r.people) {
       const e = byName.get(name) ?? { rounds: 0, tickets: 0, wins: 0, expected: 0 };
       e.rounds++;
       e.tickets += p.tickets;
       e.wins += p.wins;
-      e.expected += (p.tickets / r.sold) * r.wins;
+      e.expected += chance.get(p.tickets)!;
       byName.set(name, e);
     }
   }
