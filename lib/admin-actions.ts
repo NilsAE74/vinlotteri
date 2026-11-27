@@ -11,11 +11,14 @@ import {
   clearFailedLogins,
 } from './admin-auth';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { cookies } from 'next/headers';
-import { QUIZ_COOKIE } from './quiz';
+import { QUIZ_COOKIE, awardQuizBonus } from './quiz';
 import { formatWine, type WineSearchResult } from './wine-format';
 import { fetchWineDetails } from './wine-details-fetch';
 import { generateWeeklySummary } from './ai-comment';
+import { drawDate, isoWeek } from './draw-date';
+import { roundWeek } from './quiz-season';
 import type { WineDetails } from './wine-details-map';
 import {
   CATEGORIES,
@@ -75,7 +78,7 @@ export async function getAdminPageData() {
   return { 
     activeRound, 
     eligibleTickets, // Dette er "Potten" nå
-    takenCount: activeRound.tickets.filter((t) => t.isTaken).length // Totalt solgt (for statistikk)
+    takenCount: activeRound.tickets.filter((t) => t.isTaken && !t.isBonus).length // Totalt solgt (for statistikk); bonuslodd er ikke solgt
   };
 }
 
@@ -184,22 +187,21 @@ export async function adminStartNewRound(formData: FormData) {
         orderBy: { id: 'desc' }
     });
 
-    let week: number;
-    let year: number;
-
-    const match = lastRound?.name?.match(/Uke (\d+), (\d+)/);
-    if (match) {
-        week = parseInt(match[1]) + 2;
-        year = parseInt(match[2]);
-        if (week > 52) {
-            week -= 52;
-            year += 1;
-        }
-    } else {
-        const date = new Date();
-        year = date.getFullYear();
-        week = Math.ceil((((date.getTime() - new Date(year, 0, 1).getTime()) / 86400000) + 1) / 7);
-    }
+    // Neste runde er første uke i Kakeliste etter forrige runde (der står ukene
+    // vi har lotteri, med hopp i ferier og ved årsskiftet). Står det ingenting
+    // der, blir det to uker etter forrige trekning, regnet med ISO-uker.
+    const last = roundWeek(lastRound?.name ?? null);
+    const planned = last
+      ? await prisma.kakeliste.findFirst({
+          where: { uke: { not: null }, OR: [{ aar: { gt: last.year } }, { aar: last.year, uke: { gt: last.week } }] },
+          orderBy: [{ aar: 'asc' }, { uke: 'asc' }],
+          select: { uke: true, aar: true },
+        })
+      : null;
+    const lastDraw = lastRound?.name ? drawDate(lastRound.name) : null;
+    const { week, year } = planned?.uke
+      ? { week: planned.uke, year: planned.aar }
+      : isoWeek(lastDraw ? new Date(lastDraw.getTime() + 14 * 86_400_000) : new Date());
 
     await createWeeklyRound(`Uke ${week}, ${year}`, expectedActiveRoundId);
     revalidatePath('/');
@@ -223,7 +225,11 @@ export async function toggleRoundLock() {
     data: { isLocked: !activeRound.isLocked }
   });
 
+  // Når salget stenges, er quizen ferdig: topp 3 får bonuslodd (fra uke 50, 2026, bare én gang per runde)
+  if (!activeRound.isLocked) await awardQuizBonus(activeRound.id);
+
   revalidatePath('/');// Oppdaterer både Admin og brukernes forside
+  revalidatePath('/quiz');
 }
 
 // 4. VININFO
@@ -604,7 +610,7 @@ export async function releaseTickets(ticketIds: number[]) {
 
   const result = await prisma.ticket.updateMany({
     where: { id: { in: ticketIds }, roundId: activeRound.id, hasWon: false },
-    data: { ownerName: null, isTaken: false },
+    data: { ownerName: null, isTaken: false, isBonus: false },
   });
 
   revalidatePath('/');
@@ -725,7 +731,7 @@ export async function removeTestTickets() {
       roundId: activeRound.id,
       OR: TEST_LAST_NAMES.map(l => ({ ownerName: { endsWith: ` ${l}` } })),
     },
-    data: { ownerName: null, isTaken: false, hasWon: false },
+    data: { ownerName: null, isTaken: false, hasWon: false, isBonus: false },
   });
 
   revalidatePath('/');
@@ -749,4 +755,40 @@ export async function resetQuiz() {
   revalidatePath('/quiz');
   revalidatePath('/admin', 'layout');
   return { success: true, count: result.count };
+}
+
+// 7. REGNSKAP: egne poster (positivt beløp = inn, negativt = ut)
+const accountingPostSchema = z.object({
+  dato: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ugyldig dato'),
+  tekst: z.string().trim().min(1, 'Skriv hva posten gjelder').max(200),
+  // Norsk skrivemåte: «-1 299,50»
+  belop: z
+    .string()
+    .transform(s => Number(s.replace(/[\s ]/g, '').replace(',', '.')))
+    .refine(n => Number.isFinite(n) && n !== 0 && Math.abs(n) < 1e7, 'Ugyldig beløp'),
+  roundId: z.string().transform(s => (s ? Number(s) : null)),
+});
+
+export async function addAccountingPost(formData: FormData) {
+  if (!(await isAdmin())) return;
+  const parsed = accountingPostSchema.safeParse({
+    dato: formData.get('dato'),
+    tekst: formData.get('tekst'),
+    belop: formData.get('belop'),
+    roundId: formData.get('roundId') ?? '',
+  });
+  if (!parsed.success) return; // Skjemaet har required/pattern, så dette skjer bare ved fikling
+  const { dato, tekst, belop, roundId } = parsed.data;
+  await prisma.regnskapspost.create({
+    data: { dato: new Date(`${dato}T00:00:00Z`), tekst, belop: Math.round(belop * 100) / 100, roundId },
+  });
+  revalidatePath('/admin/regnskap');
+}
+
+export async function deleteAccountingPost(formData: FormData) {
+  if (!(await isAdmin())) return;
+  const id = Number(formData.get('id'));
+  if (!Number.isInteger(id)) return;
+  await prisma.regnskapspost.deleteMany({ where: { id } });
+  revalidatePath('/admin/regnskap');
 }

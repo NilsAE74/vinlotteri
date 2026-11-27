@@ -44,3 +44,6 @@ next-env.d.ts
 
 # prisma
 /prisma/dev.db
+# lokal testdatabase (npm run test-env)
+/.testdb
+/.next-test/

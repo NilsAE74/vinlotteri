@@ -9,6 +9,7 @@ type BookedTicket = {
   number: number;
   ownerName: string | null;
   hasWon: boolean;
+  isBonus: boolean; // Gratis bonuslodd fra quizen, ikke betalt
 };
 
 export default function TicketBookingsEditor({ tickets }: { tickets: BookedTicket[] }) {
@@ -48,6 +49,7 @@ export default function TicketBookingsEditor({ tickets }: { tickets: BookedTicke
       </ul>
       <p className="text-xs wine-text-subtle">
         Klikk på loddene du vil frigi, og bekreft. Lodd som har vunnet kan ikke frigis.
+        Lodd med stiplet kant er gratis bonuslodd fra quizen og skal ikke betales.
       </p>
     </div>
   );
@@ -58,6 +60,7 @@ function OwnerRow({ name, tickets }: { name: string; tickets: BookedTicket[] }) 
   const [isPending, startTransition] = useTransition();
   const releasable = tickets.filter(t => !t.hasWon);
   const allSelected = releasable.length > 0 && selected.length === releasable.length;
+  const bonus = tickets.filter(t => t.isBonus).length;
 
   const toggle = (id: number) =>
     setSelected(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
@@ -77,7 +80,11 @@ function OwnerRow({ name, tickets }: { name: string; tickets: BookedTicket[] }) 
     <li className="wine-border-faint border-b pb-3 last:border-0">
       <div className="flex justify-between items-center gap-2 mb-2">
         <div className="font-bold wine-text">
-          {name} <span className="wine-text-subtle font-normal text-sm">({tickets.length})</span>
+          {name}{' '}
+          <span className="wine-text-subtle font-normal text-sm">
+            ({tickets.length - bonus}
+            {bonus > 0 && ` + ${bonus} bonus`})
+          </span>
         </div>
         {releasable.length > 1 && (
           <button
@@ -97,8 +104,8 @@ function OwnerRow({ name, tickets }: { name: string; tickets: BookedTicket[] }) 
             disabled={t.hasWon || isPending}
             onClick={() => toggle(t.id)}
             aria-pressed={selected.includes(t.id)}
-            title={t.hasWon ? 'Har vunnet' : selected.includes(t.id) ? 'Fjern fra valget' : 'Velg for frigiving'}
-            className={`font-mono text-sm px-2 py-1 rounded border transition-colors ${
+            title={`${t.isBonus ? 'Bonuslodd fra quizen. ' : ''}${t.hasWon ? 'Har vunnet' : selected.includes(t.id) ? 'Fjern fra valget' : 'Velg for frigiving'}`}
+            className={`font-mono text-sm px-2 py-1 rounded border transition-colors ${t.isBonus ? 'border-dashed ' : ''}${
               t.hasWon
                 ? 'border-[#D4AF37] text-[#D4AF37] cursor-not-allowed'
                 : selected.includes(t.id)

@@ -12,6 +12,9 @@ import WineShowcase from '@/src/components/WineShowcase';
 import FunFactBox from '@/src/components/FunFactBox';
 import WineSummaryBox from '@/src/components/WineSummaryBox';
 import { pickFunFactIndex } from '@/lib/wine-fun-facts';
+import { getFunFacts } from '@/lib/quiz-bank';
+import { bonusActive } from '@/lib/quiz-season';
+import { isoWeek } from '@/lib/draw-date';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import TicketProgressBar from '@/src/components/TicketProgressBar';
 import KakeTidslinje, { type KakeUke } from '@/src/components/KakeTidslinje';
@@ -67,8 +70,8 @@ export default async function Home() {
             // Starter en ny runde med dagens ukenummer – kun når ingen runde er aktiv
             // (expectedActiveRoundId = null), slik at denne offentlige knappen aldri kan
             // avslutte en pågående runde, og et dobbeltklikk ikke lager to runder.
-            const week = getWeekNumber(new Date());
-            await createWeeklyRound(`Uke ${week}, ${new Date().getFullYear()}`, null);
+            const { week, year } = isoWeek(new Date());
+            await createWeeklyRound(`Uke ${week}, ${year}`, null);
             revalidatePath('/');
           }}>
             <PendingSubmitButton
@@ -92,7 +95,7 @@ export default async function Home() {
   const takenTickets = tickets.filter(t => t.isTaken);
 
   // Hent hele kakelisten. Bare ukene som står her har kake.
-  const today = getIsoWeek(new Date());
+  const today = isoWeek(new Date());
   const kakeRader = await prisma.kakeliste.findMany({
     where: { uke: { not: null }, Navn: { not: null } },
     select: { aar: true, uke: true, Navn: true },
@@ -113,8 +116,8 @@ export default async function Home() {
   const ansattNavn = [...new Set(ansatte.map(a => a.Navn!.trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'nb'));
 
-  const funFactIndex = pickFunFactIndex();
-  const quizTop = await getTopList(activeRound.id);
+  const [funFacts, quizTop] = await Promise.all([getFunFacts(), getTopList(activeRound.id)]);
+  const funFactIndex = pickFunFactIndex(funFacts.length);
 
   const roundLabel = activeRound.name ?? '';
 
@@ -139,7 +142,7 @@ export default async function Home() {
         {/* Fun fact + AI-oppsummering i én kolonne, ukens viner + kakebakere i den andre */}
         <div className="flex flex-wrap gap-10">
           <div className="flex-[1_1_260px] min-w-[240px] flex flex-col gap-4">
-            <FunFactBox initialIndex={funFactIndex} />
+            {funFacts.length > 0 && <FunFactBox facts={funFacts} initialIndex={funFactIndex} />}
             {/* Ukens quiz: topp 5 så langt, eller en invitasjon før noen har svart */}
             <aside aria-labelledby="quiz-tittel" className="wine-card-alpha border border-dashed wine-border-strong rounded-lg px-4 pt-3.5 pb-2.5 flex flex-col gap-2">
               <h2 id="quiz-tittel" className="font-serif text-lg font-semibold wine-text">Ukens vinquiz</h2>
@@ -149,6 +152,9 @@ export default async function Home() {
                 <p className="wine-text-muted text-[13.5px] leading-relaxed">
                   Fem spørsmål om vin for dem som har kjøpt lodd. Ingen har svart ennå denne uka.
                 </p>
+              )}
+              {bonusActive(activeRound.name) && (
+                <p className="wine-text-subtle text-xs">De tre beste får 3, 2 og 1 ekstra lodd i trekningen.</p>
               )}
               {!activeRound.isLocked && (
                 <Link href="/quiz" className="wine-link text-[13.5px] self-start underline underline-offset-4">
@@ -198,20 +204,4 @@ export default async function Home() {
       </div>
     </main>
   );
-}
-
-// ISO-uke med tilhørende ISO-år (uke 1 kan starte i desember, uke 53 kan havne i januar)
-function getIsoWeek(date: Date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  return { year: d.getUTCFullYear(), week: getWeekNumber(date) };
-}
-
-// Hjelpefunksjon for ukenummer
-function getWeekNumber(d: Date) {
-  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
-  return weekNo;
 }

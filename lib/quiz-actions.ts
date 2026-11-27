@@ -38,6 +38,9 @@ export async function startQuiz(rawName: string): Promise<ActionResult> {
   const tickets = await prisma.ticket.count({ where: { roundId: round.id, ownerName: name, isTaken: true } });
   if (tickets === 0) return { ok: false, message: `Fant ingen lodd på ${name} denne uka. Kjøp et lodd først, med samme navn.` };
 
+  const questionIds = await questionIdsForRound(round.id);
+  if (!questionIds) return { ok: false, message: 'Quizen er ikke klar ennå. Prøv igjen senere.' };
+
   const token = randomBytes(24).toString('base64url');
   let attempt;
   try {
@@ -46,7 +49,7 @@ export async function startQuiz(rawName: string): Promise<ActionResult> {
         roundId: round.id,
         name,
         tokenHash: tokenHash(token),
-        questionIds: questionIdsForRound(round.id),
+        questionIds,
         answers: [],
         shownAt: new Date(),
       },

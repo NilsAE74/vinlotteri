@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev      # Start dev server (http://localhost:3000)
+npm run test-env # Test environment: local Postgres in .testdb/ with made-up data, dev server on http://localhost:3001 (admin password "test"). Add -- --reset to start from scratch
 npm run build    # Generate Prisma client + Next.js production build
 npm run start    # Start production server
 npm run lint     # Run ESLint
@@ -13,6 +14,8 @@ npm run lint     # Run ESLint
 npx prisma generate   # Regenerate Prisma client after schema changes
 npx prisma db push    # Push schema changes to database
 ```
+
+`npm run dev` uses the production database (from `.env`); `npm run test-env` never touches it. The test env downloads nothing at runtime (Postgres comes from the `embedded-postgres` devDependency), seeds `scripts/test-env.mjs`'s data on first start, and builds into `.next-test/` (`NEXT_DIST_DIR`) so it can run alongside `npm run dev`.
 
 There is no test suite. Verify changes with `npm run lint` and `npm run build`.
 
@@ -25,15 +28,18 @@ There is no test suite. Verify changes with `npm run lint` and `npm run build`.
 ### Data Model (`prisma/schema.prisma`)
 
 App-owned models:
-- `LotteryRound` — a weekly round (`name` e.g. "Uke 4, 2026", `isActive`, `isLocked`, `aiSummary`, `winesConfirmed`).
-- `Ticket` — one of 200 tickets per round (`number` 1–200, `ownerName`, `isTaken`, `hasWon`). Unique on `[number, roundId]`.
+- `LotteryRound` — a weekly round (`name` e.g. "Uke 4, 2026", `isActive`, `isLocked`, `aiSummary`, `winesConfirmed`, `quizQuestionIds` = the round's quiz questions, drawn at random the first time someone starts the quiz, `quizBonusGiven`).
+- `Ticket` — one of 200 tickets per round (`number` 1–200, `ownerName`, `isTaken`, `hasWon`, `isBonus` = free quiz bonus ticket, not paid). Unique on `[number, roundId]`.
 - `Wine` — the bottles being raffled in a round (`info` string, `imageUrl`, `productCode` = Vinmonopolet item number, `position`). Cascade-deleted with the round.
 - `AdminLoginAttempt` — failed admin logins (SHA-256 of IP) for rate limiting.
+- `FunFact` — curated wine fun facts (`text`, `active`), shown on the front page and as the explanation after a quiz answer.
+- `QuizSporsmal` — the quiz question bank (`id` is a fixed slug that must never change, `text`, four `options`, `answer` = index 0–3, `factId`, `active`). Kept in the DB because the repo is public and the answers must not be. Both tables are edited in Supabase's table editor (no admin UI) and have RLS enabled with no policies, so only Prisma (table owner) can read them.
+- `Regnskapspost` — manual accounting entries (`dato`, `tekst`, `belop` Decimal, positive = in, negative = out, optional `roundId`), e.g. the opening balance or receipt corrections. Added/deleted on `/admin/regnskap`. RLS enabled with no policies.
 - `QuizAttempt` — one weekly-quiz attempt per name per round (unique `[roundId, name]`): question ids, answers, score, total answer time, `shownAt` for the server-side 20 s limit, and a SHA-256 of the secret token in the `quiz_token` cookie.
 
 Tables managed directly in Supabase (kept in the schema only so `prisma db push` does not drop them):
 - `Ansatte` — employee names.
-- `Kakeliste` — cake-baker schedule per week/year, shown on the front page.
+- `Kakeliste` — cake-baker schedule per week/year, shown on the front page. Also the lottery calendar: `adminStartNewRound` names the next round after the first Kakeliste week following the last round (fallback: +2 ISO weeks).
 - `NavneAlias` — alias → canonical name (e.g. initials → full name). Stored in the DB, not code, because the repo is public.
 
 ### Request Flow
@@ -48,14 +54,17 @@ All mutations go through **Next.js Server Actions** (not API routes). Server act
 Plain server modules (**not** `'use server'` — callers must do their own auth checks; do not add `'use server'` to these, it would expose them as endpoints):
 - `lib/admin-auth.ts` — admin session cookie (`admin_auth`, HMAC derived from `ADMIN_PASSWORD`, 24 h), login rate limiting (5 failures per IP / 50 total per 15 min), `getAdminTheme`.
 - `lib/lottery.ts` — `createWeeklyRound`: deactivates the current round and creates a new one with 200 tickets, guarded by a Postgres advisory lock. Also called from `app/page.tsx` when no active round exists.
+- `lib/accounting.ts` — `getLedger`, `getAccountingRounds`, `parsePrice`. Entries are added via `addAccountingPost` / `deleteAccountingPost` in `lib/admin-actions.ts`.
 - `lib/history.ts` — data for the winner-history page (`getWinnerHistory`, `getLuckStats`).
 - `lib/names.ts` — `canonicalName` (alias lookup + normalisation).
-- `lib/quiz.ts` — weekly quiz: questions per round (fixed rotation, options shuffled per round), attempt state, answer recording with deadline check, top list. `lib/quiz-questions.ts` is the question bank (each question points to a fun fact); import it on the server only, since it contains the answers.
+- `lib/quiz.ts` — weekly quiz: questions per round (random, least-used first, stored on the round; options shuffled per round), attempt state, answer recording with deadline check, top list.
+- `lib/quiz-season.ts` — quiz seasons (from 2027) and bonus rules (from week 50, 2026): `bonusActive`, `seasonOf` (week/year parsed from the round name), `getSeasonStandings`, `listSeasons`. `awardQuizBonus` (in `lib/quiz.ts`) is called from `toggleRoundLock` when sales are locked.
+- `lib/quiz-bank.ts` — loads `QuizSporsmal` and `FunFact` from the DB (cached in memory for 5 minutes). Contains the answers: server only.
 - `lib/ai-comment.ts` — weekly wine summary via Google Gemini (free tier), based only on Vinmonopolet facts.
 - `lib/wine-details-fetch.ts` — fetches product details from Vinmonopolet's unofficial API (v3; cached for a day).
 - `lib/prisma.ts` — shared Prisma client.
 
-Pure modules (no side effects, usable on client and server): `lib/wine-details-map.ts` (Vinmonopolet response → display model), `lib/wine-format.ts`, `lib/wine-suggestions.ts` (budget-based shopping-list suggestions), `lib/wine-fun-facts.ts` (curated fun facts, not AI).
+Pure modules (no side effects, usable on client and server): `lib/wine-details-map.ts` (Vinmonopolet response → display model), `lib/wine-format.ts`, `lib/wine-suggestions.ts` (budget-based shopping-list suggestions), `lib/wine-fun-facts.ts` (`pickFunFactIndex`; the facts themselves are in the `FunFact` table).
 
 ### Pages
 
@@ -63,6 +72,7 @@ Pure modules (no side effects, usable on client and server): `lib/wine-details-m
 - `app/vinnerhistorikk/page.tsx` — Public winner history and luck stats.
 - `app/quiz/page.tsx` — Weekly quiz (`QuizGame`, `QuizTopList`): five questions, 20 s each, result as a class from the 1855 Bordeaux classification. The front page shows the top 5 and links here; the purchase dialog offers it after a booking.
 - `app/admin/page.tsx` — Admin panel (cookie-authenticated): round management, lock/unlock, ticket bookings, wine list and shopping planner, AI summary, stats, test tools.
+- `app/admin/regnskap/page.tsx` — Accounts from week 48, 2026 (`lib/accounting.ts`): a chronological ledger of rounds (paid tickets × 5 kr minus wine prices parsed from `Wine.info`, plus entries tied to the round, dated on the draw day) and standalone `Regnskapspost` entries, with a running balance.
 - `app/admin/trekning/page.tsx` — Big-screen live draw. View chosen with `?visning=`: `rutenett` (default), `alle-lodd` (same grid, drawing among all tickets), `automat`, `lykkehjul`, `klassisk`. In the grid views, `?odds=vis` (toggle in the toolbar) shows each owner's win chance under their name.
 
 ### Key Components (`src/components/`)
@@ -94,6 +104,8 @@ Shared: `ThemeToggle.tsx`, `FullscreenButton.tsx`, `PendingSubmitButton.tsx` (di
 - Locked rounds reject new bookings; lock before drawing.
 - Owner names are normalised through `NavneAlias`/`Ansatte` so the same person always gets the same name.
 - Wines added to a round are suggestions until the admin confirms them (`winesConfirmed`).
+- From week 50, 2026 (`BONUS_FROM`, read from the round name): when sales are locked, the top 3 in that round's quiz get 3, 2 and 1 random free unsold tickets (`isBonus`) in the same draw. Given only once per round (`quizBonusGiven`); unlocking and locking again does not give more. Bonus tickets count for win chance but not as sold or paid (admin `takenCount`, price per bottle).
+- Quiz standings (`/quiz`, `?sesong=2027-var|2027-host`): sum of correct answers per season, ties broken by total answer time. Spring = weeks 1–25, autumn = weeks 26–50; weeks 51–53 are not counted.
 
 ### Environment Variables
 

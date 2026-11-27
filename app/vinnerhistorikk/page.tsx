@@ -241,7 +241,7 @@ function LuckRow({ entry: e, top }: { entry: LuckEntry; top: boolean }) {
   const ticketsPerWin = e.wins > 0 ? (e.tickets / e.wins).toFixed(1).replace('.', ',') : null;
   const expected = e.expected.toFixed(1).replace('.', ',');
   const winsText = `${e.wins} ${e.wins === 1 ? 'gevinst' : 'gevinster'}`;
-  const spent = e.tickets * TICKET_PRICE;
+  const spent = e.paid * TICKET_PRICE; // Gratis bonuslodd fra quizen koster ingenting
   const perBottle = e.wins > 0 ? Math.round(spent / e.wins) : null;
   const cheap = perBottle !== null && perBottle < BOTTLE_PRICE;
 

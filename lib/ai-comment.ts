@@ -4,7 +4,7 @@
 //
 // Omtalen av vinene bygger kun på faktaene fra Vinmonopolet, så modellen ikke
 // skal finne på årganger, karakterer eller lignende. Teksten handler bare om
-// vinene – fun facts vises i en egen boks på forsiden (wine-fun-facts.ts).
+// vinene – fun facts vises i en egen boks på forsiden (tabellen FunFact).
 
 import type { WineDetails } from './wine-details-map';
 
