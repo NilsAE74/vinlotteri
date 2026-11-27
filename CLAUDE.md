@@ -39,7 +39,7 @@ App-owned models:
 
 Tables managed directly in Supabase (kept in the schema only so `prisma db push` does not drop them):
 - `Ansatte` — employee names.
-- `Kakeliste` — cake-baker schedule per week/year, shown on the front page.
+- `Kakeliste` — cake-baker schedule per week/year, shown on the front page. Also the lottery calendar: `adminStartNewRound` names the next round after the first Kakeliste week following the last round (fallback: +2 ISO weeks).
 - `NavneAlias` — alias → canonical name (e.g. initials → full name). Stored in the DB, not code, because the repo is public.
 
 ### Request Flow
@@ -58,7 +58,7 @@ Plain server modules (**not** `'use server'` — callers must do their own auth 
 - `lib/history.ts` — data for the winner-history page (`getWinnerHistory`, `getLuckStats`).
 - `lib/names.ts` — `canonicalName` (alias lookup + normalisation).
 - `lib/quiz.ts` — weekly quiz: questions per round (random, least-used first, stored on the round; options shuffled per round), attempt state, answer recording with deadline check, top list.
-- `lib/quiz-season.ts` — quiz seasons and bonus rules from 2027: `bonusActive`, `seasonOf` (week/year parsed from the round name), `getSeasonStandings`, `listSeasons`. `awardQuizBonus` (in `lib/quiz.ts`) is called from `toggleRoundLock` when sales are locked.
+- `lib/quiz-season.ts` — quiz seasons (from 2027) and bonus rules (from week 50, 2026): `bonusActive`, `seasonOf` (week/year parsed from the round name), `getSeasonStandings`, `listSeasons`. `awardQuizBonus` (in `lib/quiz.ts`) is called from `toggleRoundLock` when sales are locked.
 - `lib/quiz-bank.ts` — loads `QuizSporsmal` and `FunFact` from the DB (cached in memory for 5 minutes). Contains the answers: server only.
 - `lib/ai-comment.ts` — weekly wine summary via Google Gemini (free tier), based only on Vinmonopolet facts.
 - `lib/wine-details-fetch.ts` — fetches product details from Vinmonopolet's unofficial API (v3; cached for a day).
@@ -104,7 +104,7 @@ Shared: `ThemeToggle.tsx`, `FullscreenButton.tsx`, `PendingSubmitButton.tsx` (di
 - Locked rounds reject new bookings; lock before drawing.
 - Owner names are normalised through `NavneAlias`/`Ansatte` so the same person always gets the same name.
 - Wines added to a round are suggestions until the admin confirms them (`winesConfirmed`).
-- From 2027 (round name year ≥ 2027): when sales are locked, the top 3 in that round's quiz get 3, 2 and 1 random free unsold tickets (`isBonus`) in the same draw. Given only once per round (`quizBonusGiven`); unlocking and locking again does not give more. Bonus tickets count for win chance but not as sold or paid (admin `takenCount`, price per bottle).
+- From week 50, 2026 (`BONUS_FROM`, read from the round name): when sales are locked, the top 3 in that round's quiz get 3, 2 and 1 random free unsold tickets (`isBonus`) in the same draw. Given only once per round (`quizBonusGiven`); unlocking and locking again does not give more. Bonus tickets count for win chance but not as sold or paid (admin `takenCount`, price per bottle).
 - Quiz standings (`/quiz`, `?sesong=2027-var|2027-host`): sum of correct answers per season, ties broken by total answer time. Spring = weeks 1–25, autumn = weeks 26–50; weeks 51–53 are not counted.
 
 ### Environment Variables

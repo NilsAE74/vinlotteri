@@ -19,3 +19,11 @@ export function formatDrawDate(roundName: string): string | null {
     weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
   }).format(friday);
 }
+
+// ISO-uke med tilhørende ISO-år (uke 1 kan starte i desember, uke 53 kan havne i januar)
+export function isoWeek(date: Date): { week: number; year: number } {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const year = d.getUTCFullYear();
+  return { week: Math.ceil(((d.getTime() - Date.UTC(year, 0, 1)) / 86_400_000 + 1) / 7), year };
+}

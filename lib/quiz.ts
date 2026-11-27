@@ -28,7 +28,7 @@ const TOP_COUNT = 5;
 
 export type QuizQuestionView = { index: number; total: number; text: string; options: string[]; secondsLeft: number };
 export type QuizFeedback = { index: number; total: number; text: string; options: string[]; chosen: number; correct: number; fact: string };
-// bonus = bonuslodd i ukens trekning (topp 3 fra 2027)
+// bonus = bonuslodd i ukens trekning (topp 3 fra uke 50, 2026)
 export type LeaderRow = { rank: number; name: string; score: number; className: string; seconds: number; me: boolean; bonus?: number };
 export type QuizResult = { score: number; total: number; className: string; seconds: number; rank: number; participants: number; top: LeaderRow[] };
 export type QuizState =
@@ -236,7 +236,7 @@ async function resultFor(attempt: QuizAttempt): Promise<QuizResult> {
   };
 }
 
-// --- Bonuslodd (fra 2027) ---
+// --- Bonuslodd (fra uke 50, 2026) ---
 
 // Gir topp 3 i rundens quiz 3, 2 og 1 tilfeldige ledige lodd, merket som
 // bonuslodd. Kalles når salget stenges (toggleRoundLock), så quizen er

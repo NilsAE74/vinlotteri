@@ -3,7 +3,7 @@ import type { LeaderRow } from '@/lib/quiz';
 // Ukens toppliste i quizen: plass, navn, klasse og poeng. Brukes på quizsiden
 // (etter at man har svart) og på forsiden. `extra` er din egen rad når du
 // ikke er blant de fem beste. Topp 3 får merket «+N lodd» når runden gir
-// bonuslodd (fra 2027).
+// bonuslodd (fra uke 50, 2026).
 const seconds = (s: number) => s.toLocaleString('nb-NO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 export default function QuizTopList({ rows, extra, compact = false }: { rows: LeaderRow[]; extra?: LeaderRow; compact?: boolean }) {

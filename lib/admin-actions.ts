@@ -17,6 +17,8 @@ import { QUIZ_COOKIE, awardQuizBonus } from './quiz';
 import { formatWine, type WineSearchResult } from './wine-format';
 import { fetchWineDetails } from './wine-details-fetch';
 import { generateWeeklySummary } from './ai-comment';
+import { drawDate, isoWeek } from './draw-date';
+import { roundWeek } from './quiz-season';
 import type { WineDetails } from './wine-details-map';
 import {
   CATEGORIES,
@@ -185,22 +187,21 @@ export async function adminStartNewRound(formData: FormData) {
         orderBy: { id: 'desc' }
     });
 
-    let week: number;
-    let year: number;
-
-    const match = lastRound?.name?.match(/Uke (\d+), (\d+)/);
-    if (match) {
-        week = parseInt(match[1]) + 2;
-        year = parseInt(match[2]);
-        if (week > 52) {
-            week -= 52;
-            year += 1;
-        }
-    } else {
-        const date = new Date();
-        year = date.getFullYear();
-        week = Math.ceil((((date.getTime() - new Date(year, 0, 1).getTime()) / 86400000) + 1) / 7);
-    }
+    // Neste runde er første uke i Kakeliste etter forrige runde (der står ukene
+    // vi har lotteri, med hopp i ferier og ved årsskiftet). Står det ingenting
+    // der, blir det to uker etter forrige trekning, regnet med ISO-uker.
+    const last = roundWeek(lastRound?.name ?? null);
+    const planned = last
+      ? await prisma.kakeliste.findFirst({
+          where: { uke: { not: null }, OR: [{ aar: { gt: last.year } }, { aar: last.year, uke: { gt: last.week } }] },
+          orderBy: [{ aar: 'asc' }, { uke: 'asc' }],
+          select: { uke: true, aar: true },
+        })
+      : null;
+    const lastDraw = lastRound?.name ? drawDate(lastRound.name) : null;
+    const { week, year } = planned?.uke
+      ? { week: planned.uke, year: planned.aar }
+      : isoWeek(lastDraw ? new Date(lastDraw.getTime() + 14 * 86_400_000) : new Date());
 
     await createWeeklyRound(`Uke ${week}, ${year}`, expectedActiveRoundId);
     revalidatePath('/');
@@ -224,7 +225,7 @@ export async function toggleRoundLock() {
     data: { isLocked: !activeRound.isLocked }
   });
 
-  // Når salget stenges, er quizen ferdig: topp 3 får bonuslodd (fra 2027, bare én gang per runde)
+  // Når salget stenges, er quizen ferdig: topp 3 får bonuslodd (fra uke 50, 2026, bare én gang per runde)
   if (!activeRound.isLocked) await awardQuizBonus(activeRound.id);
 
   revalidatePath('/');// Oppdaterer både Admin og brukernes forside

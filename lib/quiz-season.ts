@@ -1,4 +1,4 @@
-// Quizsesonger og bonuslodd (fra 2027).
+// Quizsesonger (fra 2027) og bonuslodd (fra uke 50, 2026).
 //
 // - Bonuslodd: når salget stenges, får topp 3 i ukens quiz 3, 2 og 1 gratis
 //   lodd i samme ukes trekning (se awardQuizBonus i lib/quiz.ts).
@@ -11,7 +11,9 @@
 
 import { prisma } from './prisma';
 
-export const BONUS_FROM_YEAR = 2027;
+// Første runde med bonuslodd, og første år med sammenlagtliste
+export const BONUS_FROM = { week: 50, year: 2026 };
+export const SEASONS_FROM_YEAR = 2027;
 // Antall bonuslodd for 1., 2. og 3. plass
 export const QUIZ_BONUS = [3, 2, 1] as const;
 
@@ -26,13 +28,13 @@ export function roundWeek(roundName: string | null): { week: number; year: numbe
 // Gir runden bonuslodd til quizvinnerne?
 export function bonusActive(roundName: string | null) {
   const w = roundWeek(roundName);
-  return !!w && w.year >= BONUS_FROM_YEAR;
+  return !!w && (w.year > BONUS_FROM.year || (w.year === BONUS_FROM.year && w.week >= BONUS_FROM.week));
 }
 
 // Sesongen runden teller i sammenlagt, eller null (før 2027 eller i juleukene)
 export function seasonOf(roundName: string | null): Season | null {
   const w = roundWeek(roundName);
-  if (!w || w.year < BONUS_FROM_YEAR || w.week > 50) return null;
+  if (!w || w.year < SEASONS_FROM_YEAR || w.week > 50) return null;
   return w.week <= 25
     ? { id: `${w.year}-var`, label: `Vår ${w.year}` }
     : { id: `${w.year}-host`, label: `Høst ${w.year}` };

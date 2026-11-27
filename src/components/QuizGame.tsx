@@ -25,7 +25,7 @@ export default function QuizGame({
   initial: QuizState | null;
   closed: boolean;
   nameSuggestions: string[];
-  bonus?: boolean; // Topp 3 får bonuslodd i ukens trekning (fra 2027)
+  bonus?: boolean; // Topp 3 får bonuslodd i ukens trekning (fra uke 50, 2026)
 }) {
   const [state, setState] = useState<QuizState | null>(initial);
   const [feedback, setFeedback] = useState<QuizFeedback | null>(null);
