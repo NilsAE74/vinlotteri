@@ -13,7 +13,8 @@ type Ticket = {
   hasWon: boolean;
 };
 
-export default function LotteryGrid({ tickets, nameSuggestions = [] }: { tickets: Ticket[]; nameSuggestions?: string[] }) {
+// locked: salget er stengt, ingen lodd kan velges (bookTicket avviser uansett)
+export default function LotteryGrid({ tickets, nameSuggestions = [], locked = false }: { tickets: Ticket[]; nameSuggestions?: string[]; locked?: boolean }) {
   // Endret fra single number til array
   const [selectedTickets, setSelectedTickets] = useState<number[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -36,7 +37,7 @@ export default function LotteryGrid({ tickets, nameSuggestions = [] }: { tickets
           return (
             <button
               key={ticket.id}
-              disabled={ticket.isTaken}
+              disabled={locked || ticket.isTaken}
               onClick={() => toggleTicket(ticket.number)}
               className={twMerge(
                 clsx(
@@ -44,7 +45,10 @@ export default function LotteryGrid({ tickets, nameSuggestions = [] }: { tickets
                   "h-10 sm:h-12 relative flex flex-col items-center justify-center rounded border font-mono transition-all duration-200 overflow-hidden",
 
                   // AVAILABLE STATE
-                  !ticket.isTaken && !isSelected && "ticket-available",
+                  !ticket.isTaken && !isSelected && !locked && "ticket-available",
+
+                  // LOCKED (ledig, men salget er stengt)
+                  !ticket.isTaken && locked && "ticket-taken opacity-40 cursor-not-allowed",
 
                   // SELECTED STATE
                   isSelected && "ticket-result scale-105 z-10",
@@ -77,7 +81,7 @@ export default function LotteryGrid({ tickets, nameSuggestions = [] }: { tickets
       </div>
 
       {/* Flytende handlingslinje når lodd er valgt */}
-      {selectedTickets.length > 0 && (
+      {selectedTickets.length > 0 && !locked && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-4">
           <button
             onClick={() => setIsDialogOpen(true)}

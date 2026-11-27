@@ -6,7 +6,7 @@ import LotteryGrid from '@/src/components/LotteryGrid';
 import { createWeeklyRound } from '@/lib/lottery';
 import PendingSubmitButton from '@/src/components/PendingSubmitButton';
 import { revalidatePath } from 'next/cache';
-import { Play } from 'lucide-react'; // Ikon for start-knapp
+import { Lock, Play } from 'lucide-react'; // Ikon for start-knapp
 import WineLogo from '@/src/components/WineLogo';
 import WineShowcase from '@/src/components/WineShowcase';
 import FunFactBox from '@/src/components/FunFactBox';
@@ -186,9 +186,19 @@ export default async function Home() {
 
         <Perforation />
 
+        {activeRound.isLocked && (
+          <div role="status" className="mb-4 flex items-center justify-center gap-3 rounded-xl border-2 border-[#D4AF37] bg-[#722F37] px-5 py-4 text-center text-white">
+            <Lock className="w-6 h-6 shrink-0 text-[#D4AF37]" aria-hidden />
+            <div>
+              <p className="font-serif text-xl font-semibold">Salget er stengt</p>
+              <p className="text-sm text-white/80">Det kan ikke kjøpes flere lodd i denne runden. Lykke til i trekningen!</p>
+            </div>
+          </div>
+        )}
+
         {/* The Grid */}
         <div className="grid-wrapper rounded-xl border p-1">
-          <LotteryGrid tickets={tickets} nameSuggestions={ansattNavn} />
+          <LotteryGrid tickets={tickets} nameSuggestions={ansattNavn} locked={activeRound.isLocked} />
         </div>
 
         <footer className="flex justify-between flex-wrap gap-2 text-sm wine-text-subtle mt-14 pt-5 border-t wine-border-faint">
