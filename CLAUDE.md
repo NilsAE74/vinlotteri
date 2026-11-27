@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev      # Start dev server (http://localhost:3000)
+npm run test-env # Test environment: local Postgres in .testdb/ with made-up data, dev server on http://localhost:3001 (admin password "test"). Add -- --reset to start from scratch
 npm run build    # Generate Prisma client + Next.js production build
 npm run start    # Start production server
 npm run lint     # Run ESLint
@@ -13,6 +14,8 @@ npm run lint     # Run ESLint
 npx prisma generate   # Regenerate Prisma client after schema changes
 npx prisma db push    # Push schema changes to database
 ```
+
+`npm run dev` uses the production database (from `.env`); `npm run test-env` never touches it. The test env downloads nothing at runtime (Postgres comes from the `embedded-postgres` devDependency), seeds `scripts/test-env.mjs`'s data on first start, and builds into `.next-test/` (`NEXT_DIST_DIR`) so it can run alongside `npm run dev`.
 
 There is no test suite. Verify changes with `npm run lint` and `npm run build`.
 

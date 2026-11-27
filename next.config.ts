@@ -21,6 +21,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // Testmiljøet (npm run test-env) bygger i en egen mappe, så det kan kjøre samtidig med npm run dev
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Ikke røp at siden kjører Next.js
   poweredByHeader: false,
   async headers() {
