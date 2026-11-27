@@ -11,6 +11,7 @@ import {
   clearFailedLogins,
 } from './admin-auth';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { QUIZ_COOKIE, awardQuizBonus } from './quiz';
 import { formatWine, type WineSearchResult } from './wine-format';
@@ -753,4 +754,40 @@ export async function resetQuiz() {
   revalidatePath('/quiz');
   revalidatePath('/admin', 'layout');
   return { success: true, count: result.count };
+}
+
+// 7. REGNSKAP: egne poster (positivt beløp = inn, negativt = ut)
+const accountingPostSchema = z.object({
+  dato: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ugyldig dato'),
+  tekst: z.string().trim().min(1, 'Skriv hva posten gjelder').max(200),
+  // Norsk skrivemåte: «-1 299,50»
+  belop: z
+    .string()
+    .transform(s => Number(s.replace(/[\s ]/g, '').replace(',', '.')))
+    .refine(n => Number.isFinite(n) && n !== 0 && Math.abs(n) < 1e7, 'Ugyldig beløp'),
+  roundId: z.string().transform(s => (s ? Number(s) : null)),
+});
+
+export async function addAccountingPost(formData: FormData) {
+  if (!(await isAdmin())) return;
+  const parsed = accountingPostSchema.safeParse({
+    dato: formData.get('dato'),
+    tekst: formData.get('tekst'),
+    belop: formData.get('belop'),
+    roundId: formData.get('roundId') ?? '',
+  });
+  if (!parsed.success) return; // Skjemaet har required/pattern, så dette skjer bare ved fikling
+  const { dato, tekst, belop, roundId } = parsed.data;
+  await prisma.regnskapspost.create({
+    data: { dato: new Date(`${dato}T00:00:00Z`), tekst, belop: Math.round(belop * 100) / 100, roundId },
+  });
+  revalidatePath('/admin/regnskap');
+}
+
+export async function deleteAccountingPost(formData: FormData) {
+  if (!(await isAdmin())) return;
+  const id = Number(formData.get('id'));
+  if (!Number.isInteger(id)) return;
+  await prisma.regnskapspost.deleteMany({ where: { id } });
+  revalidatePath('/admin/regnskap');
 }

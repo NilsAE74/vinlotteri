@@ -3,7 +3,7 @@ import AdminLogin from '@/src/components/AdminLogin';
 import ThemeToggle from '@/src/components/ThemeToggle';
 import { getAdminStats, adminStartNewRound, getAdminPageData, toggleRoundLock } from '@/lib/admin-actions';
 import { isAdminAuthenticated, getAdminTheme } from '@/lib/admin-auth';
-import { Trophy, RefreshCw, BarChart3, Lock, Unlock, Wine, Ticket, MonitorPlay, ShoppingCart } from 'lucide-react';
+import { Trophy, RefreshCw, BarChart3, Lock, Unlock, Wine, Ticket, MonitorPlay, ShoppingCart, Calculator } from 'lucide-react';
 import WineListEditor from '@/src/components/WineListEditor';
 import WineShoppingPlanner from '@/src/components/WineShoppingPlanner';
 import TicketBookingsEditor from '@/src/components/TicketBookingsEditor';
@@ -39,7 +39,12 @@ export default async function AdminPage() {
             Aktiv runde: <span className="wine-text">{activeRound?.name || 'Ingen aktiv runde'}</span>
           </p>
         </div>
-        <ThemeToggle initialTheme={theme} />
+        <div className="flex items-center gap-4">
+          <Link href="/admin/regnskap" className="inline-flex items-center gap-1 text-sm wine-text-muted hover:text-[#D4AF37]">
+            <Calculator className="w-4 h-4" /> Regnskap
+          </Link>
+          <ThemeToggle initialTheme={theme} />
+        </div>
       </header>
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">

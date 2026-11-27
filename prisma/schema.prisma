@@ -21,6 +21,7 @@ model LotteryRound {
   tickets   Ticket[]
   wines     Wine[]
   quizAttempts QuizAttempt[]
+  regnskapsposter Regnskapspost[]
 }
 
 // Flaskene som loddes ut i en runde (kun informasjon om ukens premie)
@@ -94,6 +95,21 @@ model QuizAttempt {
   round       LotteryRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
   @@unique([roundId, name])
+}
+
+// Egne poster i regnskapet (admin → Regnskap): inngående saldo, faktiske
+// kvitteringer, gebyrer, rettelser osv. Positivt beløp = inn, negativt = ut.
+// Inntekt fra lodd og vinkjøp regnes ut automatisk og lagres ikke her.
+// roundId knytter posten til en runde (tas med i rundens resultat).
+model Regnskapspost {
+  id        Int      @id @default(autoincrement())
+  dato      DateTime @db.Date
+  tekst     String
+  belop     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  roundId   Int?
+  round     LotteryRound? @relation(fields: [roundId], references: [id], onDelete: SetNull)
 }
 
 // --- Tabeller som administreres direkte i Supabase ---
